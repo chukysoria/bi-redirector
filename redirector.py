@@ -1,9 +1,8 @@
 """
 Redirector
 """
-import os
-
 from flask import Flask, request, redirect
+from settings import PORT
 
 APP = Flask(__name__)
 
@@ -20,5 +19,4 @@ def redirect_to_box():
     return redirect(new_url)
 
 if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 5000))
     APP.run(host='0.0.0.0', port=PORT, debug=True)
