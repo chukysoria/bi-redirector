@@ -1,0 +1,21 @@
+{
+  "name": "bi-redirector",
+  "description": "Redirect queries from PowerBI",
+  "scripts": {
+  },
+  "env": {
+    "PORT": {
+      "required": true
+    }
+  },
+  "formation": {
+  },
+  "addons": [
+
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
