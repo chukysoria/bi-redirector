@@ -1,0 +1,45 @@
+{
+  "name": "bi-redirector",
+  "scripts": {
+  },
+  "env": {
+    "BOX_CLIENT_ID": {
+      "required": true
+    },
+    "BOX_CLIENT_SECRET": {
+      "required": true
+    },
+    "BOX_DESTINATION_FOLDER": {
+      "required": true
+    },
+    "DOWNLOAD_PATH": {
+      "required": true
+    },
+    "FILE_LIST": {
+      "required": true
+    },
+    "PORT": {
+      "required": true
+    },
+    "REPORT_PASSWORD": {
+      "required": true
+    },
+    "REPORT_SERVER": {
+      "required": true
+    },
+    "REPORT_USERNAME": {
+      "required": true
+    }
+  },
+  "formation": {
+  },
+  "addons": [
+    "papertrail",
+    "heroku-redis"
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
