@@ -1,8 +1,10 @@
 """
 Redirector
 """
-from flask import Flask, request, redirect
-from settings import PORT
+from flask import Flask, redirect, request
+
+from boxstores import BoxKeysStoreRedis
+from settings import PORT, HEROKU_APP_NAME, REDIS_DB
 
 APP = Flask(__name__)
 
@@ -17,6 +19,30 @@ def redirect_to_box():
 
     new_url = f"https://amadeus.box.com/shared/static/{doc_id}"
     return redirect(new_url)
+
+@APP.route("/authenticate")
+def authenticate():
+    oauth = BoxKeysStoreRedis.get_oauth()
+    redirect_url = f'http://localhost/boxauth'
+    auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
+    REDIS_DB.hset('box', 'csrf_token', csrf_token)
+    #Redirect to Box Oauth
+    return redirect(auth_url)
+
+@APP.route("/boxauth")
+def boxauth():
+    """
+    Stores the received tokens in oauth.
+    """
+    csrf_token = request.args.get('state')
+    auth_token = request.args.get('code')    
+    try:
+        assert REDIS_DB.hget('box', 'csrf_token') == csrf_token
+        BoxKeysStoreRedis.get_oauth().authenticate(auth_token)
+        response = "Authenticated. You can close this window."
+    except BoxOAuthException as ex:
+        response = ex._message["error_description"]
+    return response
 
 if __name__ == '__main__':
     APP.run(host='0.0.0.0', port=PORT, debug=True)
