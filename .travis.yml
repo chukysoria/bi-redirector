@@ -9,6 +9,9 @@ cache:
 env:
   - TOX_ENV=py36
 
+install:
+  - pip install tox
+
 script:
   - tox -e $TOX_ENV
 
