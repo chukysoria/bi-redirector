@@ -1,0 +1,16 @@
+language: python
+
+python:
+  - "3.6"
+
+cache:
+  - pip
+
+env:
+  - TOX_ENV=py36
+
+script:
+  - tox -e $TOX_ENV
+
+after_success:
+  - coveralls
