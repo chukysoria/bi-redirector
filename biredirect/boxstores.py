@@ -3,7 +3,7 @@ Box Keys store for Heroku/Redis
 """
 from boxsdk import OAuth2
 
-from settings import BOX_CLIENT_ID, BOX_CLIENT_SECRET, REDIS_DB
+from biredirect.settings import REDIS_DB, BOX_CLIENT_ID, BOX_CLIENT_SECRET
 
 
 class BoxKeysStoreRedis:
@@ -27,7 +27,7 @@ class BoxKeysStoreRedis:
             store_tokens=cls._store_tokens,
             access_token=box_token['accessToken'],
             refresh_token=box_token['refreshToken']
-        )        
+        )
         return oauth
 
     @classmethod

@@ -4,8 +4,8 @@ Redirector
 from boxsdk.exception import BoxOAuthException
 from flask import Flask, redirect, request
 
-from boxstores import BoxKeysStoreRedis
-from settings import HEROKU_APP_NAME, PORT, REDIS_DB
+from biredirect.settings import HEROKU_APP_NAME, PORT, REDIS_DB
+from biredirect.boxstores import BoxKeysStoreRedis
 
 APP = Flask(__name__)
 
@@ -27,7 +27,7 @@ def authenticate():
     Launches the authentication process
     """
     oauth = BoxKeysStoreRedis.get_oauth()
-    redirect_url = f'http://{HEROKU_APP_NAME}.herokuapp.com/boxauth'
+    redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/boxauth'
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
     REDIS_DB.hset('box', 'csrf_token', csrf_token)
     #Redirect to Box Oauth
@@ -44,8 +44,10 @@ def boxauth():
         assert REDIS_DB.hget('box', 'csrf_token') == csrf_token
         BoxKeysStoreRedis.get_oauth().authenticate(auth_token)
         response = "Authenticated. You can close this window."
-    except BoxOAuthException as ex:
+    except BoxOAuthException as ex: # pragma: no cover
         response = ex
+    except AssertionError:
+        response = "Tokens don't match"
     return response
 
 if __name__ == '__main__':
