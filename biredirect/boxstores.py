@@ -21,13 +21,20 @@ class BoxKeysStoreRedis:
             :class:`boxsdk.Oauth2`
         """
         box_token = REDIS_DB.hgetall('box')
-        oauth = OAuth2(
-            client_id=BOX_CLIENT_ID,
-            client_secret=BOX_CLIENT_SECRET,
-            store_tokens=cls._store_tokens,
-            access_token=box_token['accessToken'],
-            refresh_token=box_token['refreshToken']
-        )
+        if 'accessToken' in box_token.keys():
+            oauth = OAuth2(
+                client_id=BOX_CLIENT_ID,
+                client_secret=BOX_CLIENT_SECRET,
+                store_tokens=cls._store_tokens,
+                access_token=box_token['accessToken'],
+                refresh_token=box_token['refreshToken']
+            )
+        else:
+            oauth = OAuth2(
+                client_id=BOX_CLIENT_ID,
+                client_secret=BOX_CLIENT_SECRET,
+                store_tokens=cls._store_tokens
+            )
         return oauth
 
     @classmethod
