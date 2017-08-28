@@ -170,10 +170,10 @@ class BoxSync:
         print(f"Found {len(local_filenames)} files.")
 
         # Delete online files not present offline
-        if delete_files_remotely:            
+        if delete_files_remotely:
             # Read online files
             box_files = self.list_box_folder(box_folder_id=box_folder_id,
-                                            fields=['name'])
+                                             fields=['name'])
             for boxfile in box_files:
                 if boxfile.name not in local_filenames:
                     # Delete file if not found locally
