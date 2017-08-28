@@ -1,1 +1,1 @@
-web: gunicorn -b 0.0.0.0:$PORT redirector:APP
+web: gunicorn -b 0.0.0.0:$PORT biredirect.redirector:APP
