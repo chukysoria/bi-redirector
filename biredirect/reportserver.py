@@ -16,6 +16,7 @@ class ReportFormat(Enum):
     EXCEL = 'xls'
     XML = 'xml'
 
+
 class ReportServer:
     """
     Use to download files from Report Server.
@@ -99,14 +100,15 @@ class ReportServer:
         """
         self._check_session()
         resp = self._session.get(url)
-        #Check successful status code
+        # Check successful status code
         resp.raise_for_status()
-        #write to file
+        # write to file
         with open(target_filename, 'wb') as handle:
             for block in resp.iter_content(1024):
                 handle.write(block)
 
-    def download_report(self, report_path, report_format, target_filename, other_args=None):
+    def download_report(self, report_path, report_format,
+                        target_filename, other_args=None):
         """
         Downloads a report to a file.
 
@@ -119,14 +121,15 @@ class ReportServer:
         :param othr_args:
             (optional) `Dict` with query parameters.
         """
-        #Create Query params
+        # Create Query params
         query_args = {}
         query_args['rs:Format'] = report_format.value
-        if not other_args is None:
+        if other_args is not None:
             query_args.update(other_args)
         query_params = urllib.parse.urlencode(query_args)
-        #Create thes final url
-        report_url = f"{self.report_server}?/{urllib.parse.quote(report_path)}&{query_params}"
-        #Dowloads the url
+        # Create thes final url
+        parsed_path = urllib.parse.quote(report_path)
+        report_url = f"{self.report_server}?/{parsed_path}&{query_params}"
+        # Dowloads the url
         print(f"Downloading from {report_url}")
         self._download_url(report_url, target_filename)

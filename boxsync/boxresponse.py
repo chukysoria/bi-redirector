@@ -6,6 +6,7 @@ from flask import Flask, request
 
 FLASK_APP = Flask(__name__)
 
+
 def shutdown_server():
     """
     Shutdowns webserver.
@@ -17,6 +18,7 @@ def shutdown_server():
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
+
 
 @FLASK_APP.route("/boxauth")
 def boxauth():

@@ -3,18 +3,19 @@ Download reports from BI
 """
 import json
 import os
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
+
+from biredirect.boxstores import BoxKeysStoreRedis
+from biredirect.reportserver import ReportFormat, ReportServer
+from biredirect.settings import (BOX_DESTINATION_FOLDER,
+                                 DOWNLOAD_PATH, FILE_LIST,
+                                 HEROKU_APP_NAME, REPORT_PASSWORD,
+                                 REPORT_SERVER, REPORT_USERNAME)
+from boxsync.bifile import BiFile
+from boxsync.boxsync import BoxSync
 
 from invoke import call, task
 
-from boxstores import BoxKeysStoreRedis
-from boxsync import BiFile, BoxSync
-from reportserver import ReportFormat, ReportServer
-from settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH, FILE_LIST,
-                      HEROKU_APP_NAME, REPORT_PASSWORD, REPORT_SERVER,
-                      REPORT_USERNAME)
-
-REPORT_DWNLD = None
 
 @task
 def create_pip_requirements(ctx):
@@ -22,6 +23,7 @@ def create_pip_requirements(ctx):
     pip freeze to requirements.txt
     """
     ctx.run("pip freeze > requirements.txt")
+
 
 @task
 def download_files(ctx, open_date, update_date):
@@ -43,24 +45,28 @@ def download_files(ctx, open_date, update_date):
     timestamp = update_date.strftime('%Y%m%d')
     str_open_date = open_date.strftime('%m/%d/%Y')
     str_update_date = update_date.strftime('%m/%d/%Y')
-    #Ticket_dump
+    # Ticket_dump
     print("Downloading Ticket_dump...")
-    report_args = {'Date' : str_open_date, 'LastUpdate' : str_update_date}
+    report_args = {'Date': str_open_date, 'LastUpdate': str_update_date}
     filename = os.path.join(temp_path, f'Ticket_dump_{timestamp}.xml')
-    report_download.download_report('My Reports/Ticket_dump_BI', ReportFormat.XML,
+    report_download.download_report('My Reports/Ticket_dump_BI',
+                                    ReportFormat.XML,
                                     filename, report_args)
-    #Task_dump
+    # Task_dump
     print("Downloading Task_dump...")
-    report_args = {'LastUpdate' : str_update_date}
+    report_args = {'LastUpdate': str_update_date}
     filename = os.path.join(temp_path, f'Task_dump_{timestamp}.csv')
-    report_download.download_report('My Reports/Task_dump_BI', ReportFormat.CSV,
+    report_download.download_report('My Reports/Task_dump_BI',
+                                    ReportFormat.CSV,
                                     filename, report_args)
-    #Call_dump
+    # Call_dump
     print("Downloading Call_dump...")
-    report_args = {'LastUpdate' : str_update_date}
+    report_args = {'LastUpdate': str_update_date}
     filename = os.path.join(temp_path, f'IncomingCall_dump_{timestamp}.csv')
-    report_download.download_report('My Reports/IncomingCall_dump_BI', ReportFormat.CSV,
+    report_download.download_report('My Reports/IncomingCall_dump_BI',
+                                    ReportFormat.CSV,
                                     filename, report_args)
+
 
 def _get_report_download():
     """
@@ -80,6 +86,7 @@ def _get_report_download():
     print("Login successful")
     return report_download
 
+
 @task
 def delete_local_files(ctx, folder=DOWNLOAD_PATH):
     """
@@ -93,22 +100,24 @@ def delete_local_files(ctx, folder=DOWNLOAD_PATH):
         try:
             if the_file.is_file():
                 os.unlink(the_file.path)
-        except Exception as ex:
+        except OSError as ex:
             print(ex)
+
 
 @task
 def sync_to_box(ctx, delete_files_remotely=False):
     """
     Upload local files to be processed by PowerBi
     """
-    #Create client
-    client = BoxSync(keys_store=BoxKeysStoreRedis, authenticate_method=_authenticate_box)
+    # Create client
+    client = BoxSync(keys_store=BoxKeysStoreRedis,
+                     authenticate_method=_authenticate_box)
 
     if delete_files_remotely:
         # Create a local file_list file
         _create_file_list(client)
 
-    #Sync folder to Box
+    # Sync folder to Box
     client.sync_folder(local_path=DOWNLOAD_PATH,
                        box_folder_id=BOX_DESTINATION_FOLDER,
                        create_link=True,
@@ -116,11 +125,13 @@ def sync_to_box(ctx, delete_files_remotely=False):
 
     file_list = _create_file_list(client)
 
-    #Upload new file
+    # Upload new file
     client.upload_file_to_box(destination_folder=BOX_DESTINATION_FOLDER,
                               fichero=file_list)
 
-@task(pre=[delete_local_files], post=[call(sync_to_box, False), delete_local_files])
+
+@task(pre=[delete_local_files],
+      post=[call(sync_to_box, False), delete_local_files])
 def daily_download(ctx):
     """
     Download daily delta
@@ -128,12 +139,16 @@ def daily_download(ctx):
     yesterday = date.today() - timedelta(days=1)
     download_files(ctx, open_date=date(2017, 1, 1), update_date=yesterday)
 
-@task(pre=[delete_local_files], post=[call(sync_to_box, True), delete_local_files])
+
+@task(pre=[delete_local_files],
+      post=[call(sync_to_box, True), delete_local_files])
 def weekly_download(ctx):
     """
     Downloads full data
     """
-    download_files(ctx, open_date=date(2017, 1, 1), update_date=date(2017, 1, 1))
+    download_files(ctx, open_date=date(2017, 1, 1),
+                   update_date=date(2017, 1, 1))
+
 
 @task(pre=[delete_local_files], post=[delete_local_files])
 def daily_update(ctx):
@@ -147,14 +162,18 @@ def daily_update(ctx):
         daily_download(ctx)
         sync_to_box(ctx, False)
 
+
 def _authenticate_box(oauth):
-    raise Exception(f"Go to https://{HEROKU_APP_NAME}.herokuapp.com/authenticate to login")
+    raise Exception(f"Go to https://{HEROKU_APP_NAME}.herokuapp.com/"
+                    f"authenticate to login")
+
 
 def _create_file_list(client):
-    #Get files on the Box folder
-    local_filenames_json = client.list_box_folder_to_json(BOX_DESTINATION_FOLDER)
+    # Get files on the Box folder
+    local_filenames_json = client.list_box_folder_to_json(
+        BOX_DESTINATION_FOLDER)
 
-    #Dump to a json file
+    # Dump to a json file
     file_list = BiFile(filename=FILE_LIST,
                        path=os.path.join(DOWNLOAD_PATH, FILE_LIST))
     with open(file_list.path, 'w') as outfile:

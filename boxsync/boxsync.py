@@ -43,7 +43,6 @@ class BoxKeysStoreFile:
         with open(self.keys_path) as data_file:
             return json.load(data_file)
 
-
     def _store_tokens(self, access_token, refresh_token):
         """
         Store token values in keysfile.
@@ -57,6 +56,7 @@ class BoxKeysStoreFile:
         data['refreshToken'] = refresh_token
         with open(self.keys_path, 'w') as outfile:
             json.dump(data, outfile)
+
 
 class BoxAuthenticateInteractive:
     """
@@ -83,16 +83,18 @@ class BoxAuthenticateInteractive:
         :rtype:
             :class:`boxsdk.OAuth2`
         """
-        redirect_url = f'http://{self.server_hostname}:{self.server_port}/boxauth'
+        redirect_url = (f"http://{self.server_hostname}:"
+                        f"{self.server_port}/boxauth")
         auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
-        #Launch web browser
+        # Launch web browser
         webbrowser.open(auth_url)
-        #Create web server and pass the info
+        # Create web server and pass the info
         FLASK_APP.config['csrf_token'] = csrf_token
         FLASK_APP.config['oauth'] = oauth
-        #Server will shutdown after receiving the token
+        # Server will shutdown after receiving the token
         FLASK_APP.run(self.server_hostname, port=self.server_port)
         return oauth
+
 
 class BoxSync:
     """
@@ -115,7 +117,7 @@ class BoxSync:
         else:
             self.authenticate = authenticate_method
 
-        #Authenticate client
+        # Authenticate client
         self.oauth = self.keys_store.get_oauth()
         print("Authenticating...")
         self.client = self._validate_auth(self.oauth)
@@ -140,11 +142,12 @@ class BoxSync:
             client.user(user_id='me').get(fields='login')
             return client
         except (BoxOAuthException, BoxAPIException):
-            #Reauthenticate
+            # Reauthenticate
             oauth = self.authenticate(oauth)
             return Client(oauth)
 
-    def sync_folder(self, local_path, box_folder_id, create_link=False, delete_files_remotely=True):
+    def sync_folder(self, local_path, box_folder_id, create_link=False,
+                    delete_files_remotely=True):
         """
         Sync a local folder to the designated Box folder.
         :param local_path:
@@ -156,7 +159,7 @@ class BoxSync:
         :param delete_files_remotely:
             Deletes in Box files not found in local folder. Defaul `True`
         """
-        #Read current local files
+        # Read current local files
         local_filenames = {}
         print(f"Searching files on {local_path}...")
         for fichero in os.scandir(local_path):
@@ -166,20 +169,21 @@ class BoxSync:
             local_filenames[fichero] = local_file
         print(f"Found {len(local_filenames)} files.")
 
-        #Read online files
-        box_files = self.list_box_folder(box_folder_id=box_folder_id, fields=['name'])
-
-        #Delete online files not present offline
-        if delete_files_remotely:
+        # Delete online files not present offline
+        if delete_files_remotely:            
+            # Read online files
+            box_files = self.list_box_folder(box_folder_id=box_folder_id,
+                                            fields=['name'])
             for boxfile in box_files:
-                if not boxfile.name in local_filenames:
-                    #Delete file if not found locally
+                if boxfile.name not in local_filenames:
+                    # Delete file if not found locally
                     boxfile.delete()
                     print(f"{boxfile.name} deleted.")
 
-        #Upload new and modified files to box
+        # Upload new and modified files to box
         for fichero in local_filenames.values():
-            self.upload_file_to_box(destination_folder=box_folder_id, fichero=fichero,
+            self.upload_file_to_box(destination_folder=box_folder_id,
+                                    fichero=fichero,
                                     create_link=create_link)
 
     def list_box_folder_to_json(self, box_folder_id):
@@ -195,13 +199,14 @@ class BoxSync:
         :type create_link:
             `list`
         """
-        #List box files
+        # List box files
         box_files = self.list_box_folder(box_folder_id=box_folder_id,
                                          fields=['name', 'shared_link'])
-        #Fulfill sharedlinks
+        # Fulfill sharedlinks
         folder_list = {}
         for boxfile in box_files:
-            bifile = BiFile(filename=boxfile.name, shared_link=boxfile.shared_link['download_url'])
+            bifile = BiFile(filename=boxfile.name,
+                            shared_link=boxfile.shared_link['download_url'])
             folder_list[bifile.filename] = bifile
 
         local_filenames_json = {}
@@ -233,7 +238,8 @@ class BoxSync:
         print(f"Found {len(box_files)} files.")
         return box_files
 
-    def upload_file_to_box(self, destination_folder, fichero, create_link=False):
+    def upload_file_to_box(self, destination_folder, fichero,
+                           create_link=False):
         """
         Uploads a file to a Box Folder.
 
@@ -252,22 +258,24 @@ class BoxSync:
         """
         fld = self.client.folder(destination_folder)
         try:
-            boxfile = fld.upload(file_path=fichero.path, upload_using_accelerator=True,
+            boxfile = fld.upload(file_path=fichero.path,
+                                 upload_using_accelerator=True,
                                  preflight_check=True)
             print(f"{fichero.filename} uploaded.")
-            #Create link
+            # Create link
             if create_link:
                 boxfile.get_shared_link_download_url(access='open')
         except BoxAPIException as ex:
-            if ex.status == 409: #Item_name_in_use
+            if ex.status == 409:  # Item_name_in_use
                 file_hash = ex.context_info['conflicts']['sha1']
-                #Check if file has locally changed
+                # Check if file has locally changed
                 if file_hash == fichero.sha1:
                     print(f"{fichero.filename} already exists.")
                 else:
                     file_id = ex.context_info['conflicts']['id']
-                    self.client.file(file_id).update_contents(file_path=fichero.path,
-                                                              upload_using_accelerator=True)
+                    self.client.file(file_id).update_contents(
+                        file_path=fichero.path,
+                        upload_using_accelerator=True)
                     print(f"{fichero.filename} new version uploaded.")
             else:
                 raise ex

@@ -5,6 +5,7 @@ from hashlib import sha1
 
 BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
 
+
 class BiFile:
     """
     Represents a file for PowerBi
