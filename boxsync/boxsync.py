@@ -166,7 +166,7 @@ class BoxSync:
             local_file = BiFile()
             local_file.path = fichero.path
             local_file.filename = fichero.name
-            local_filenames[fichero] = local_file
+            local_filenames[fichero.name] = local_file
         print(f"Found {len(local_filenames)} files.")
 
         # Delete online files not present offline
@@ -175,7 +175,7 @@ class BoxSync:
             box_files = self.list_box_folder(box_folder_id=box_folder_id,
                                              fields=['name'])
             for boxfile in box_files:
-                if boxfile.name not in local_filenames:
+                if boxfile.name not in local_filenames.keys():
                     # Delete file if not found locally
                     boxfile.delete()
                     print(f"{boxfile.name} deleted.")
