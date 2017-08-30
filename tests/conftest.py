@@ -1,11 +1,15 @@
 """
 Shared fixtures
 """
+import json
 from unittest import mock
-from biredirect import boxstores, redirector
+
 from boxsdk import OAuth2
 import pytest
 from redis import StrictRedis
+
+from biredirect import boxstores, redirector
+from boxsync import boxresponse, boxsync
 
 
 @pytest.fixture
@@ -36,6 +40,43 @@ def webapp(redisdb, box_redis_store):
     flask_app.debug = True
     redirector.BoxKeysStoreRedis = box_redis_store
     redirector.REDIS_DB = redisdb
-    client = flask_app.test_client()
+    with flask_app.test_client() as client:
+        yield client
 
-    return client
+
+@pytest.fixture
+def appboxresponse(oauth):
+    flask_app = boxresponse.FLASK_APP
+    flask_app.debug = True
+    flask_app.config['oauth'] = oauth
+    return flask_app
+
+
+@pytest.fixture
+def appconfig(appboxresponse):
+    return appboxresponse.config
+
+
+@pytest.fixture
+def webbox(appboxresponse):
+    with appboxresponse.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def json_file(tmpdir_factory):
+    fn = tmpdir_factory.mktemp('data').join('keys.json')
+    data = {}
+    data['clientID'] = 'cid'
+    data['clientSecret'] = 'cs'
+    data['accessToken'] = 'at'
+    data['refreshToken'] = 'rt'
+    with open(fn, 'w') as outfile:
+        json.dump(data, outfile)
+    return fn
+
+
+@pytest.fixture
+def box_ks(json_file):
+    ks = boxsync.BoxKeysStoreFile(str(json_file))
+    return ks

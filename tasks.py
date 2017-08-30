@@ -5,16 +5,15 @@ import json
 import os
 from datetime import date, datetime, timedelta
 
+from invoke import call, task
+
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.reportserver import ReportFormat, ReportServer
-from biredirect.settings import (BOX_DESTINATION_FOLDER,
-                                 DOWNLOAD_PATH, FILE_LIST,
-                                 HEROKU_APP_NAME, REPORT_PASSWORD,
+from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
+                                 FILE_LIST, HEROKU_APP_NAME, REPORT_PASSWORD,
                                  REPORT_SERVER, REPORT_USERNAME)
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
-
-from invoke import call, task
 
 
 @task

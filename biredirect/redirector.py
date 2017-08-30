@@ -1,10 +1,11 @@
 """
 Redirector
 """
-from biredirect.boxstores import BoxKeysStoreRedis
-from biredirect.settings import HEROKU_APP_NAME, PORT, REDIS_DB
 from boxsdk.exception import BoxOAuthException
 from flask import Flask, redirect, request
+
+from biredirect.boxstores import BoxKeysStoreRedis
+from biredirect.settings import HEROKU_APP_NAME, PORT, REDIS_DB
 
 APP = Flask(__name__)
 

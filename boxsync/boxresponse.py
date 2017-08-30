@@ -27,11 +27,13 @@ def boxauth():
     """
     csrf_token = request.args.get('state')
     auth_token = request.args.get('code')
-    assert FLASK_APP.config['csrf_token'] == csrf_token
     try:
+        assert FLASK_APP.config['csrf_token'] == csrf_token
         FLASK_APP.config['oauth'].authenticate(auth_token)
         response = "Authenticated. You can close this window."
     except BoxOAuthException as ex:
-        response = ex._message["error_description"]
+        response = ex
+    except AssertionError:
+        response = "Tokens don't match"
     shutdown_server()
     return response

@@ -1,9 +1,9 @@
 """
 Box Keys store for Heroku/Redis
 """
-from biredirect.settings import BOX_CLIENT_ID, BOX_CLIENT_SECRET, REDIS_DB
-
 from boxsdk import OAuth2
+
+from biredirect.settings import BOX_CLIENT_ID, BOX_CLIENT_SECRET, REDIS_DB
 
 
 class BoxKeysStoreRedis:
