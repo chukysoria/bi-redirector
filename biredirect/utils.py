@@ -32,11 +32,6 @@ def print_prof_data():
     return msg
 
 
-def clear_prof_data():
-    global PROF_DATA
-    PROF_DATA = {}
-
-
 def parse_date(str_date):
     if isinstance(str_date, str):
         return datetime.strptime(str_date, '%d/%m/%Y')
