@@ -1,7 +1,6 @@
 {
   "name": "bi-redirector",
-  "scripts": {
-  },
+  "scripts": {},
   "env": {
     "BOX_CLIENT_ID": {
       "required": true
@@ -31,8 +30,7 @@
       "required": true
     }
   },
-  "formation": {
-  },
+  "formation": {},
   "addons": [
     "papertrail",
     "heroku-redis"
