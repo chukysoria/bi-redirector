@@ -105,3 +105,6 @@ ENV/
 
 # temp folder
 tmp/
+
+# private keys
+keys.json

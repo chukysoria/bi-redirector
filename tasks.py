@@ -3,15 +3,17 @@ Download reports from BI
 """
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from invoke import call, task
+import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.reportserver import ReportFormat, ReportServer
 from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
                                  FILE_LIST, HEROKU_APP_NAME, REPORT_PASSWORD,
                                  REPORT_SERVER, REPORT_USERNAME)
+from biredirect.utils import parse_date, print_prof_data, profile
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
 
@@ -34,10 +36,9 @@ def download_files(ctx, open_date, update_date):
     :param update_date:
         Earliest update date.
     """
-    if isinstance(open_date, str):
-        open_date = datetime.strptime(open_date, '%d/%m/%Y')
-    if isinstance(update_date, str):
-        update_date = datetime.strptime(update_date, '%d/%m/%Y')
+
+    open_date = parse_date(open_date)
+    update_date = parse_date(update_date)
 
     report_download = _get_report_download()
     temp_path = DOWNLOAD_PATH
@@ -103,6 +104,7 @@ def delete_local_files(ctx, folder=DOWNLOAD_PATH):
             print(ex)
 
 
+@profile
 @task
 def sync_to_box(ctx, delete_files_remotely=False):
     """
@@ -129,37 +131,52 @@ def sync_to_box(ctx, delete_files_remotely=False):
                               fichero=file_list)
 
 
+@profile
 @task(pre=[delete_local_files],
       post=[call(sync_to_box, False), delete_local_files])
-def daily_download(ctx):
+def daily_download(ctx, open_date="01/01/2017"):
     """
     Download daily delta
+
+    :param open_date:
+        Earliest open date.
     """
+    parsed_date = parse_date(open_date)
     yesterday = date.today() - timedelta(days=1)
-    download_files(ctx, open_date=date(2017, 1, 1), update_date=yesterday)
+    download_files(ctx, open_date=parsed_date, update_date=yesterday)
 
 
+@profile
 @task(pre=[delete_local_files],
       post=[call(sync_to_box, True), delete_local_files])
-def weekly_download(ctx):
+def weekly_download(ctx, open_date="01/01/2017"):
     """
     Downloads full data
+
+    :param open_date:
+        Earliest open date.
     """
-    download_files(ctx, open_date=date(2017, 1, 1),
-                   update_date=date(2017, 1, 1))
+    parsed_date = parse_date(open_date)
+    download_files(ctx, open_date=parsed_date,
+                   update_date=parsed_date)
 
 
 @task(pre=[delete_local_files], post=[delete_local_files])
-def daily_update(ctx):
+def daily_update(ctx, open_date="01/01/2017"):
     """
     Executes the daily job. If Monday downloads the full data
+    :param open_date:
+        Earliest open date.
     """
-    if date.today().weekday == 0:
-        weekly_download(ctx)
+    if date.today().weekday() == 0:
+        weekly_download(ctx, open_date)
         sync_to_box(ctx, True)
     else:
-        daily_download(ctx)
+        daily_download(ctx, open_date)
         sync_to_box(ctx, False)
+    msg = print_prof_data()
+    requests.post("https://nosnch.in/bb9030fe27", data={"m": msg})
+    print(msg)
 
 
 def _authenticate_box(oauth):
