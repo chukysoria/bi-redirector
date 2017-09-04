@@ -20,15 +20,19 @@ def test_parse_date(newdate):
 
     assert parsed_date == expected
 
+
 def test_parse_date_fail():
 
     with pytest.raises(Exception):
         parse_date(7)
 
+
 @profile
 def sample_function():
     sleep(0.05)
 
+
 def test_profile():
     sample_function()
-    assert print_prof_data() == "\nFunction sample_function executed in 0.05 seconds" 
+    assert print_prof_data() == (
+        "\nFunction sample_function executed in 0.05 seconds")
