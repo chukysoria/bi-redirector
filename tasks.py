@@ -11,8 +11,9 @@ import requests
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.reportserver import ReportFormat, ReportServer
 from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
-                                 FILE_LIST, HEROKU_APP_NAME, REPORT_PASSWORD,
-                                 REPORT_SERVER, REPORT_USERNAME)
+                                 FILE_LIST, HEROKU_APP_NAME, JOB_SNITCH,
+                                 REPORT_PASSWORD, REPORT_SERVER,
+                                 REPORT_USERNAME)
 from biredirect.utils import parse_date, print_prof_data, profile
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
@@ -175,7 +176,7 @@ def daily_update(ctx, open_date="01/01/2017"):
         daily_download(ctx, open_date)
         sync_to_box(ctx, False)
     msg = print_prof_data()
-    requests.post("https://nosnch.in/bb9030fe27", data={"m": msg})
+    requests.post(JOB_SNITCH, data={"m": msg})
     print(msg)
 
 
