@@ -20,3 +20,4 @@ FILE_LIST = environ.get('FILE_LIST')
 REDIS_DB = StrictRedis.from_url(environ.get("REDIS_URL"),
                                 decode_responses=True)
 HEROKU_APP_NAME = environ.get("HEROKU_APP_NAME")
+JOB_SNITCH = environ.get("JOB_SNITCH")
