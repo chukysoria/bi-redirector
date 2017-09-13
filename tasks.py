@@ -105,12 +105,16 @@ def delete_local_files(ctx, folder=DOWNLOAD_PATH):
             print(ex)
 
 
-@profile
 @task
 def sync_to_box(ctx, delete_files_remotely=False):
     """
     Upload local files to be processed by PowerBi
     """
+    _sync_to_box(ctx, delete_files_remotely)
+
+
+@profile
+def _sync_to_box(ctx, delete_files_remotely=False):
     # Create client
     client = BoxSync(keys_store=BoxKeysStoreRedis,
                      authenticate_method=_authenticate_box)
@@ -132,7 +136,6 @@ def sync_to_box(ctx, delete_files_remotely=False):
                               fichero=file_list)
 
 
-@profile
 @task(pre=[delete_local_files],
       post=[call(sync_to_box, False), delete_local_files])
 def daily_download(ctx, open_date="01/01/2017"):
@@ -142,12 +145,16 @@ def daily_download(ctx, open_date="01/01/2017"):
     :param open_date:
         Earliest open date.
     """
+    _daily_download(ctx, open_date)
+
+
+@profile
+def _daily_download(ctx, open_date="01/01/2017"):
     parsed_date = parse_date(open_date)
     yesterday = datetime.combine(date.today(), time.min) - timedelta(days=1)
     download_files(ctx, open_date=parsed_date, update_date=yesterday)
 
 
-@profile
 @task(pre=[delete_local_files],
       post=[call(sync_to_box, True), delete_local_files])
 def weekly_download(ctx, open_date="01/01/2017"):
@@ -157,6 +164,11 @@ def weekly_download(ctx, open_date="01/01/2017"):
     :param open_date:
         Earliest open date.
     """
+    _weekly_download(ctx, open_date)
+
+
+@profile
+def _weekly_download(ctx, open_date="01/01/2017"):
     parsed_date = parse_date(open_date)
     download_files(ctx, open_date=parsed_date,
                    update_date=parsed_date)
