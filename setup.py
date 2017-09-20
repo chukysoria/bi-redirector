@@ -26,7 +26,7 @@ setup(
         'requests >=2.18.3'],
     entry_points={
         'console_scripts': [
-            'spotifyconnect = biredirect.redirector'
+            'redirect = biredirect.__main__:main'
         ]
     }
 )
