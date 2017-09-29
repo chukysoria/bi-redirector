@@ -67,6 +67,12 @@ def download_files(ctx, open_date, update_date):
     report_download.download_report('My Reports/IncomingCall_dump_BI',
                                     ReportFormat.CSV,
                                     filename, report_args)
+    # CSAT
+    print("Downloading CSAT...")
+    filename = os.path.join(temp_path, 'CSAT.csv')
+    report_download.download_report('My Reports/CSAT',
+                                    ReportFormat.CSV,
+                                    filename)
 
 
 def _get_report_download():

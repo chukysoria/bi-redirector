@@ -40,7 +40,7 @@ class BoxKeysStoreRedis:
     @classmethod
     def _store_tokens(cls, access_token, refresh_token):
         """
-        Store token values in keysfile.
+        Store token values in redis.
         :param access_token:
             Box Access token
         :param refresh_token:
