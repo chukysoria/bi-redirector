@@ -22,19 +22,6 @@ def test_redirect_to_box_success(webapp):
     assert response.location == 'https://amadeus.box.com/shared/static/abc'
 
 
-def test_redirect_to_onedrive(webapp):
-    response = webapp.get('/api/redirect/onedrive')
-
-    assert response.status_code == 302
-
-
-def test_onedrive_success(webapp):
-    response = webapp.get('/api/redirect/onedrive?filename=abc')
-
-    assert response.status_code == 302
-    assert response.location == 'https://myoffice.accenture.com/personal/c_sanchez_mateo_accenture_com/Documents/IFTTT/Gmail/abc'
-
-
 @pytest.mark.parametrize("redirectTo, expectedUrl", [
     (None, "http://localhost/"),
     ("dashboard", "http://localhost/dashboard")

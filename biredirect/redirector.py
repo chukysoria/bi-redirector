@@ -4,7 +4,6 @@ Redirector
 from functools import wraps
 import json
 from os import environ as env
-from urllib.parse import urlparse
 
 from auth0.v3.authentication import GetToken, Users
 from boxsdk.exception import BoxOAuthException
@@ -19,20 +18,24 @@ from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
 
-def requires_auth(f):
-  @wraps(f)
-  def decorated(*args, **kwargs):
-    if 'profile' not in session:
-      # Redirect to Login page here
-      return redirect('/')
-    return f(*args, **kwargs)
 
-  return decorated
+# Login decorator
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'profile' not in session:
+            # Redirect to Login page here
+            return redirect('/')
+        return f(*args, **kwargs)
+
+    return decorated
+
 
 # Static files routes
 @APP.route('/')
 def home():
     return render_template('home.html', env=env)
+
 
 @APP.route('/public/<path:filename>')
 def static_files(filename):
@@ -43,12 +46,6 @@ def static_files(filename):
 @requires_auth
 def dashboard():
     return 'Future dashboard'
-
-@APP.route('/logout')
-def logout():
-    session.clear()
-    base_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
-    return redirect(f'https://{AUTH0_DOMAIN}/v2/logout?returnTo={base_url}&client_id={AUTH0_CLIENT_ID}')
 
 
 # API Routes
@@ -64,24 +61,14 @@ def redirect_to_box():
     new_url = f"https://amadeus.box.com/shared/static/{doc_id}"
     return redirect(new_url)
 
-@APP.route('/api/redirect/onedrive', methods=['GET'])
-def redirect_to_onedrive():
-    """
-    Redirect to the OneDrive download address
-    """
-    filename = request.args.get('filename')
-    if filename is None:
-        new_url = "https://myoffice.accenture.com/personal/c_sanchez_mateo_accenture_com/Documents/IFTTT/Gmail/BaseExport.csv"
-    else:
-        new_url = f"https://myoffice.accenture.com/personal/c_sanchez_mateo_accenture_com/Documents/IFTTT/Gmail/{filename}"
 
-    return redirect(new_url)
-
-# Here we're using the /callback route.
+# Internal Logins
 @APP.route('/api/authcallback')
 def callback_handling():
     code = request.args.get('code')
     redirectUrl = request.args.get('redirectto')
+    if redirectUrl is None:
+        redirectUrl = '/'
     get_token = GetToken(AUTH0_DOMAIN)
     auth0_users = Users(AUTH0_DOMAIN)
     token = get_token.authorization_code(AUTH0_CLIENT_ID,
@@ -91,6 +78,14 @@ def callback_handling():
     return redirect(redirectUrl)
 
 
+@APP.route('/logout')
+def logout():
+    session.clear()
+    base_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
+    return redirect(f'https://{AUTH0_DOMAIN}/v2/logout?returnTo={base_url}&client_id={AUTH0_CLIENT_ID}')
+
+
+# Box logins
 @APP.route("/api/authenticate")
 def authenticate():
     """
