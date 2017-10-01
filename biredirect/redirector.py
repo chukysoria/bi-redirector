@@ -1,8 +1,8 @@
 """
 Redirector
 """
-from functools import wraps
 import json
+from functools import wraps
 from os import environ as env
 
 from auth0.v3.authentication import GetToken, Users
@@ -65,24 +65,32 @@ def redirect_to_box():
 # Internal Logins
 @APP.route('/api/authcallback')
 def callback_handling():
-    code = request.args.get('code')
-    redirect_url = request.args.get('redirectto')
-    if redirect_url is None:
-        redirect_url = '/'
-    get_token = GetToken(AUTH0_DOMAIN)
-    auth0_users = Users(AUTH0_DOMAIN)
-    token = get_token.authorization_code(AUTH0_CLIENT_ID,
-                                         AUTH0_CLIENT_SECRET, code, AUTH0_CALLBACK_URL)
-    user_info = auth0_users.userinfo(token['access_token'])
-    session['profile'] = json.loads(user_info)
-    return redirect(redirect_url)
+    error = request.args.get('error')
+    if error is None:
+        code = request.args.get('code')
+        redirect_url = request.args.get('redirectto')
+        if redirect_url is None:
+            redirect_url = '/'
+        get_token = GetToken(AUTH0_DOMAIN)
+        auth0_users = Users(AUTH0_DOMAIN)
+        token = get_token.authorization_code(AUTH0_CLIENT_ID,
+                                             AUTH0_CLIENT_SECRET,
+                                             code, AUTH0_CALLBACK_URL)
+        user_info = auth0_users.userinfo(token['access_token'])
+        session['profile'] = json.loads(user_info)
+        return redirect(redirect_url)
+    else:
+        error_msg = request.args.get('error_description')
+        return f'<h1>{error}</h1><p>{error_msg}<p>', 401
 
 
 @APP.route('/logout')
 def logout():
     session.clear()
     base_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
-    return redirect(f'https://{AUTH0_DOMAIN}/v2/logout?returnTo={base_url}&client_id={AUTH0_CLIENT_ID}')
+    return redirect(
+        f'https://{AUTH0_DOMAIN}/v2/logout?'
+        f'returnTo={base_url}&client_id={AUTH0_CLIENT_ID}')
 
 
 # Box logins

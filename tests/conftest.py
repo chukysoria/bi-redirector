@@ -45,7 +45,9 @@ def get_token(token_instance):
 @pytest.fixture
 def users_instance():
     mock_users_instace = mock.Mock(spec=Users)
-    mock_users_instace.userinfo.return_value = '{"sub":"auth0|59","name":"xx@gmail.com","nickname":"xx","picture":"https://s.gravatar.com/avatar/x","updated_at":"sometime"}'
+    mock_users_instace.userinfo.return_value = \
+        '{"sub":"auth0|59","name":"xx@gmail.com","nickname":"xx",'\
+        '"picture":"https://s.gravatar.com/avatar/x","updated_at":"sometime"}'
     return mock_users_instace
 
 

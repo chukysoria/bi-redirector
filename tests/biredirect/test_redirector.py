@@ -26,7 +26,8 @@ def test_redirect_to_box_success(webapp):
     (None, "http://localhost/"),
     ("dashboard", "http://localhost/dashboard")
 ])
-def test_callback_handling(webapp, get_token, token_instance, users, users_instance, redirect_to, expected_url):
+def test_callback_handling(webapp, get_token, token_instance, users,
+                           users_instance, redirect_to, expected_url):
     url = "/api/authcallback?code=auth0code"
     url = f'{url}&redirectto={redirect_to}' if redirect_to else url
     response = webapp.get(url)
@@ -40,11 +41,22 @@ def test_callback_handling(webapp, get_token, token_instance, users, users_insta
     assert response.location == expected_url
 
 
+def test_callback_handling_error(webapp):
+    url = "/api/authcallback?error=a&error_description=errormsg"
+    response = webapp.get(url)
+
+    assert response.status_code == 401
+    assert 'errormsg' in response.data.decode()
+
+
 def test_logout(webapp):
     response = webapp.get('/logout')
+    return_to = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
 
     assert response.status_code == 302
-    assert response.location == f'https://{AUTH0_DOMAIN}/v2/logout?returnTo=https://{HEROKU_APP_NAME}.herokuapp.com/&client_id={AUTH0_CLIENT_ID}'
+    assert response.location == f'https://{AUTH0_DOMAIN}/v2/logout?'\
+                                f'returnTo={return_to}&'\
+                                f'client_id={AUTH0_CLIENT_ID}'
 
 
 def test_authenticate(webapp, box_redis_store, oauth, redisdb):
