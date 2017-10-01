@@ -22,13 +22,13 @@ def test_redirect_to_box_success(webapp):
     assert response.location == 'https://amadeus.box.com/shared/static/abc'
 
 
-@pytest.mark.parametrize("redirectTo, expectedUrl", [
+@pytest.mark.parametrize("redirect_to, expected_url", [
     (None, "http://localhost/"),
     ("dashboard", "http://localhost/dashboard")
 ])
-def test_callback_handling(webapp, get_token, token_instance, users, users_instance, redirectTo, expectedUrl):
+def test_callback_handling(webapp, get_token, token_instance, users, users_instance, redirect_to, expected_url):
     url = "/api/authcallback?code=auth0code"
-    url = f'{url}&redirectto={redirectTo}' if redirectTo else url
+    url = f'{url}&redirectto={redirect_to}' if redirect_to else url
     response = webapp.get(url)
 
     get_token.assert_called_once_with(AUTH0_DOMAIN)
@@ -37,7 +37,7 @@ def test_callback_handling(webapp, get_token, token_instance, users, users_insta
         AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, 'auth0code', AUTH0_CALLBACK_URL)
     users_instance.userinfo.assert_called_once_with('at')
     assert response.status_code == 302
-    assert response.location == expectedUrl
+    assert response.location == expected_url
 
 
 def test_logout(webapp):

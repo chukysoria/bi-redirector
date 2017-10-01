@@ -66,16 +66,16 @@ def redirect_to_box():
 @APP.route('/api/authcallback')
 def callback_handling():
     code = request.args.get('code')
-    redirectUrl = request.args.get('redirectto')
-    if redirectUrl is None:
-        redirectUrl = '/'
+    redirect_url = request.args.get('redirectto')
+    if redirect_url is None:
+        redirect_url = '/'
     get_token = GetToken(AUTH0_DOMAIN)
     auth0_users = Users(AUTH0_DOMAIN)
     token = get_token.authorization_code(AUTH0_CLIENT_ID,
                                          AUTH0_CLIENT_SECRET, code, AUTH0_CALLBACK_URL)
     user_info = auth0_users.userinfo(token['access_token'])
     session['profile'] = json.loads(user_info)
-    return redirect(redirectUrl)
+    return redirect(redirect_url)
 
 
 @APP.route('/logout')
