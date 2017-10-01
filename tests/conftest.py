@@ -4,6 +4,7 @@ Shared fixtures
 import json
 from unittest import mock
 
+from auth0.v3.authentication import GetToken, Users
 from boxsdk import OAuth2
 import pytest
 from redis import StrictRedis
@@ -28,6 +29,36 @@ def box_redis_store(oauth):
 
 
 @pytest.fixture
+def token_instance():
+    mock_token = mock.Mock(spec=GetToken)
+    mock_token.authorization_code.return_value = {'access_token': 'at'}
+    return mock_token
+
+
+@pytest.fixture
+def get_token(token_instance):
+    mock_get_token = mock.Mock(spec=GetToken)
+    mock_get_token.return_value = token_instance
+    return mock_get_token
+
+
+@pytest.fixture
+def users_instance():
+    mock_users_instace = mock.Mock(spec=Users)
+    mock_users_instace.userinfo.return_value = \
+        '{"sub":"auth0|59","name":"xx@gmail.com","nickname":"xx",'\
+        '"picture":"https://s.gravatar.com/avatar/x","updated_at":"sometime"}'
+    return mock_users_instace
+
+
+@pytest.fixture
+def users(users_instance):
+    mock_users = mock.Mock(spec=Users)
+    mock_users.return_value = users_instance
+    return mock_users
+
+
+@pytest.fixture
 def redisdb():
     mock_redisdb = mock.Mock(spec=StrictRedis)
     mock_redisdb.hget.return_value = 'csrf_0123'
@@ -35,11 +66,13 @@ def redisdb():
 
 
 @pytest.fixture
-def webapp(redisdb, box_redis_store):
+def webapp(redisdb, box_redis_store, get_token, users):
     flask_app = redirector.APP
     flask_app.debug = True
     redirector.BoxKeysStoreRedis = box_redis_store
     redirector.REDIS_DB = redisdb
+    redirector.GetToken = get_token
+    redirector.Users = users
     with flask_app.test_client() as client:
         yield client
 
