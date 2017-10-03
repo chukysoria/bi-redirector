@@ -1,0 +1,6 @@
+<div>
+  <div *ngFor="let config of configs">
+    <label>{{config.name}}</label>
+    <input [(ngModel)]="config.value" placeholder="value">
+  </div>
+</div>

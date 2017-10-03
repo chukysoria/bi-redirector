@@ -62,6 +62,18 @@ def redirect_to_box():
     return redirect(new_url)
 
 
+@APP.route('/api/configs', methods=['GET'])
+def get_configs():
+    """
+    Return all configs
+    """
+    configs = [
+        { 'id': 'PublicKey', 'name': 'Public Key', 'value': 'a'},
+        { 'id': 'SecretKey', 'name': 'Secret Key', 'value': 1}
+    ]
+    return json.dumps(configs)
+
+
 # Internal Logins
 @APP.route('/api/authcallback')
 def callback_handling():
