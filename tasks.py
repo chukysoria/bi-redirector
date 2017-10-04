@@ -69,8 +69,15 @@ def download_files(ctx, open_date, update_date):
                                     filename, report_args)
     # CSAT
     print("Downloading CSAT...")
-    filename = os.path.join(temp_path, 'CSAT.csv')
+    filename = os.path.join(temp_path, 'CSAT.xml')
     report_download.download_report('My Reports/CSAT',
+                                    ReportFormat.XML,
+                                    filename)
+
+    # CSAT_sent
+    print("Downloading CSAT_sent...")
+    filename = os.path.join(temp_path, 'CSAT_sent.csv')
+    report_download.download_report('My Reports/CSAT_sent',
                                     ReportFormat.CSV,
                                     filename)
 
