@@ -14,7 +14,34 @@ export class ConfigComponent implements OnInit {
   constructor(private configService: ConfigService) { }
 
   ngOnInit() {
+    this.getConfigs();
+  }
+
+  getConfigs(): void {
     this.configService.getConfigs().then(configs => this.configs = configs);
+  }
+
+  add(name: string, value: string): void {
+    name = name.trim();
+    if (!name) { return; }
+    this.configService.create(name, value)
+      .then(config => {
+        this.configs.push(config);
+      });
+  }
+
+  update(config: Config): void {
+    this.configService.update(config)
+      .then(newConfig => {
+        const index = this.configs.findIndex(c => c.id === newConfig.id);
+        this.configs[index] = newConfig;
+      });
+  }
+
+  delete(config: Config): void {
+    this.configService.delete(config.id)
+      .then(() => this.configs = this.configs.filter(c => c !== config)
+      );
   }
 
 }

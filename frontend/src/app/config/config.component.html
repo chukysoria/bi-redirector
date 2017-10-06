@@ -2,5 +2,14 @@
   <div *ngFor="let config of configs">
     <label>{{config.name}}</label>
     <input [(ngModel)]="config.value" placeholder="value">
+    <button (click)="update(config)">Update</button>
+    <button (click)="delete(config)">Del</button>
   </div>
+</div>
+<div>
+  <input placeholder="config name" #configName />
+  <input placeholder="value" #configValue />
+  <button (click)="add(configName.value, configValue.value); configName.value=''; configValue.value=''">
+    Add
+  </button>
 </div>

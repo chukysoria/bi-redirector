@@ -7,7 +7,7 @@ from os import environ as env
 
 from auth0.v3.authentication import GetToken, Users
 from boxsdk.exception import BoxOAuthException
-from flask import (Flask, redirect, render_template, request,
+from flask import (Flask, jsonify, redirect, request,
                    send_from_directory, session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
@@ -31,23 +31,6 @@ def requires_auth(f):
     return decorated
 
 
-# Static files routes
-@APP.route('/')
-def home():
-    return render_template('home.html', env=env)
-
-
-@APP.route('/public/<path:filename>')
-def static_files(filename):
-    return send_from_directory('./public', filename)
-
-
-@APP.route('/dashboard')
-@requires_auth
-def dashboard():
-    return 'Future dashboard'
-
-
 # API Routes
 @APP.route('/api/redirect', methods=['GET'])
 def redirect_to_box():
@@ -62,16 +45,53 @@ def redirect_to_box():
     return redirect(new_url)
 
 
+configs = [
+    {'id': 0, 'name': 'Public Key', 'value': 'a12'},
+    {'id': 1, 'name': 'Secret Key', 'value': '0asf'}
+]
+
+
+@APP.route('/api/configs', methods=['POST'])
+def create_config():
+    data = request.json
+    last_id = configs[-1]['id']
+    new_config = {'id': last_id + 1,
+                  'name': data['name'], 'value': data['value']}
+    configs.append(new_config)
+    config = configs[-1]
+    return jsonify({'data': config}), 201
+
+
 @APP.route('/api/configs', methods=['GET'])
-def get_configs():
+def retrieve_configs():
     """
     Return all configs
     """
-    configs = [
-        { 'id': 'PublicKey', 'name': 'Public Key', 'value': 'a'},
-        { 'id': 'SecretKey', 'name': 'Secret Key', 'value': 1}
-    ]
-    return json.dumps(configs)
+    return jsonify({'data': configs})
+
+
+@APP.route('/api/configs/<int:config_id>', methods=['GET'])
+def retrieve_config(config_id):
+    config = [config for config in configs if config['id'] == config_id][0]
+    if config:
+        return jsonify({'data': config})
+    return jsonify({"error": "id doesn't exist"}), 404
+
+
+@APP.route('/api/configs/<int:config_id>', methods=['PUT'])
+def update_config(config_id):
+    config = [config for config in configs if config['id'] == config_id][0]
+    data = request.json
+    config['name'] = data['name']
+    config['value'] = data['value']
+    return jsonify({'data': config})
+
+
+@APP.route('/api/configs/<int:config_id>', methods=['DELETE'])
+def delete_config(config_id):
+    config = [config for config in configs if config['id'] == config_id][0]
+    configs.remove(config)
+    return jsonify({'result': 'success'})
 
 
 # Internal Logins
@@ -135,3 +155,21 @@ def boxauth():
     except AssertionError:
         response = "Tokens don't match"
     return response
+
+# Fileserver
+
+
+# Catch All urls, enabling copy-paste url
+@APP.route('/', defaults={'path': ''})
+@APP.route('/<path:path>')  # Catch All urls, enabling copy-paste url
+def home(path):
+    print('here: %s' % path)
+    if path == '':
+        path = 'index.html'
+    return send_from_directory('./dist', path)
+
+
+@APP.route('/dashboard')
+@requires_auth
+def dashboard():
+    return 'Future dashboard'

@@ -6,7 +6,7 @@
   "apps": [
     {
       "root": "src",
-      "outDir": "dist",
+      "outDir": "../biredirect/dist",
       "assets": [
         "assets",
         "favicon.ico"

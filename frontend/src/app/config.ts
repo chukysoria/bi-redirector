@@ -1,5 +1,5 @@
-export interface Config {
-  id: string;
+export class Config {
+  id: number;
   name: string;
-  value;
+  value: string;
 }
