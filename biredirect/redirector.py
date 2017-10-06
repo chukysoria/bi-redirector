@@ -3,7 +3,6 @@ Redirector
 """
 import json
 from functools import wraps
-from os import environ as env
 
 from auth0.v3.authentication import GetToken, Users
 from boxsdk.exception import BoxOAuthException
@@ -44,21 +43,20 @@ def redirect_to_box():
     new_url = f"https://amadeus.box.com/shared/static/{doc_id}"
     return redirect(new_url)
 
-
-configs = [
-    {'id': 0, 'name': 'Public Key', 'value': 'a12'},
-    {'id': 1, 'name': 'Secret Key', 'value': '0asf'}
-]
-
+LUA_NEW_ITEM = """
+local id = redis.call("INCR", KEYS[1] .. ":id")
+redis.call("HMSET",  KEYS[1] .. ":" .. id, unpack(ARGV))
+redis.call("SADD", KEYS[1], id)
+return id
+"""
 
 @APP.route('/api/configs', methods=['POST'])
 def create_config():
     data = request.json
-    last_id = configs[-1]['id']
-    new_config = {'id': last_id + 1,
-                  'name': data['name'], 'value': data['value']}
-    configs.append(new_config)
-    config = configs[-1]
+    new_config = REDIS_DB.register_script(LUA_NEW_ITEM)
+    config_id = new_config(keys=['config'], args=['name', data['name'], 'value', data['value']])
+    config = REDIS_DB.hgetall(f'config:{config_id}')
+    config['id'] = config_id
     return jsonify({'data': config}), 201
 
 
@@ -67,12 +65,28 @@ def retrieve_configs():
     """
     Return all configs
     """
+    config_ids = REDIS_DB.smembers('config')
+    pipe = REDIS_DB.pipeline()
+    for config_id in config_ids:
+        pipe.hgetall(f'config:{config_id}')
+
+    configs = pipe.execute()
+    i = 0
+    for config_id in config_ids:
+        configs[i]['id'] = config_id
+        i += 1
     return jsonify({'data': configs})
 
+def get_config(config_id):
+    config = REDIS_DB.hgetall(f'config:{config_id}')
+    if config:
+        config['id'] = config_id
+        return config
+    return None
 
 @APP.route('/api/configs/<int:config_id>', methods=['GET'])
 def retrieve_config(config_id):
-    config = [config for config in configs if config['id'] == config_id][0]
+    config = get_config(config_id)
     if config:
         return jsonify({'data': config})
     return jsonify({"error": "id doesn't exist"}), 404
@@ -80,18 +94,23 @@ def retrieve_config(config_id):
 
 @APP.route('/api/configs/<int:config_id>', methods=['PUT'])
 def update_config(config_id):
-    config = [config for config in configs if config['id'] == config_id][0]
     data = request.json
-    config['name'] = data['name']
-    config['value'] = data['value']
-    return jsonify({'data': config})
+    if REDIS_DB.hmset(f'config:{config_id}', {'name': data['name'], 'value': data['value']}):
+        config = get_config(config_id)
+        if config:
+            return jsonify({'data': config})
+    return jsonify({'error': 'Not updated'})
 
 
 @APP.route('/api/configs/<int:config_id>', methods=['DELETE'])
 def delete_config(config_id):
-    config = [config for config in configs if config['id'] == config_id][0]
-    configs.remove(config)
-    return jsonify({'result': 'success'})
+    pipe = REDIS_DB.pipeline()
+    pipe.delete(f'config:{config_id}')
+    pipe.srem('config', config_id)
+    result = pipe.execute()
+    if result == [1, 1]:
+        return jsonify({'result': 'success'})
+    return jsonify({'error': 'Not deleted'}), 404
 
 
 # Internal Logins
