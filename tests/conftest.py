@@ -9,7 +9,7 @@ from boxsdk import OAuth2
 import pytest
 from redis import StrictRedis
 
-from biredirect import boxstores, redirector
+from biredirect import DBService, boxstores, redirector
 from boxsync import boxresponse, boxsync
 
 
@@ -66,11 +66,48 @@ def redisdb():
 
 
 @pytest.fixture
-def webapp(redisdb, box_redis_store, get_token, users):
+def dbservice():
+    mock_dbservice = mock.Mock(spec=DBService)
+    mock_dbservice.get_crsf_token.return_value = 'csrf_0123'
+    mock_dbservice.insert_config = insert_config
+    mock_dbservice.get_config = retrieve_config
+    mock_dbservice.update_config = update_config
+    mock_dbservice.delete_config = retrieve_config
+    mock_dbservice.retrieve_configs.return_value = (
+        [retrieve_config(1), retrieve_config(2)])
+    return mock_dbservice
+
+
+def insert_config(data):
+    try:
+        if data['name'] and data['value']:
+            data['id'] = 1
+            return data
+    except:
+        return None
+
+
+def retrieve_config(config_id):
+    if config_id < 10:
+        return {'name': 'n', 'value': 'v', 'id': config_id}
+    return None
+
+
+def update_config(config_id, data):
+    config = retrieve_config(config_id)
+    if config:
+        config['name'] = data['name']
+        config['value'] = data['value']
+        return config
+    return None
+
+
+@pytest.fixture
+def webapp(dbservice, box_redis_store, get_token, users):
     flask_app = redirector.APP
     flask_app.debug = True
     redirector.BoxKeysStoreRedis = box_redis_store
-    redirector.REDIS_DB = redisdb
+    redirector.DB = dbservice
     redirector.GetToken = get_token
     redirector.Users = users
     with flask_app.test_client() as client:

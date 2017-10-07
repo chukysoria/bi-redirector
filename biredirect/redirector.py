@@ -6,16 +6,18 @@ from functools import wraps
 
 from auth0.v3.authentication import GetToken, Users
 from boxsdk.exception import BoxOAuthException
-from flask import (Flask, jsonify, redirect, request,
-                   send_from_directory, session)
+from flask import (Flask, jsonify, redirect, request, send_from_directory,
+                   session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
+from biredirect.dbservice import DBService
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
                                  AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
-                                 HEROKU_APP_NAME, REDIS_DB)
+                                 HEROKU_APP_NAME)
 
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
+DB = DBService()
 
 
 # Login decorator
@@ -43,21 +45,13 @@ def redirect_to_box():
     new_url = f"https://amadeus.box.com/shared/static/{doc_id}"
     return redirect(new_url)
 
-LUA_NEW_ITEM = """
-local id = redis.call("INCR", KEYS[1] .. ":id")
-redis.call("HMSET",  KEYS[1] .. ":" .. id, unpack(ARGV))
-redis.call("SADD", KEYS[1], id)
-return id
-"""
 
 @APP.route('/api/configs', methods=['POST'])
 def create_config():
-    data = request.json
-    new_config = REDIS_DB.register_script(LUA_NEW_ITEM)
-    config_id = new_config(keys=['config'], args=['name', data['name'], 'value', data['value']])
-    config = REDIS_DB.hgetall(f'config:{config_id}')
-    config['id'] = config_id
-    return jsonify({'data': config}), 201
+    config = DB.insert_config(request.json)
+    if config:
+        return jsonify({'data': config}), 201
+    return jsonify({"error": "Config don't created"}), 404
 
 
 @APP.route('/api/configs', methods=['GET'])
@@ -65,28 +59,12 @@ def retrieve_configs():
     """
     Return all configs
     """
-    config_ids = REDIS_DB.smembers('config')
-    pipe = REDIS_DB.pipeline()
-    for config_id in config_ids:
-        pipe.hgetall(f'config:{config_id}')
+    return jsonify({'data': DB.retrieve_configs()})
 
-    configs = pipe.execute()
-    i = 0
-    for config_id in config_ids:
-        configs[i]['id'] = config_id
-        i += 1
-    return jsonify({'data': configs})
-
-def get_config(config_id):
-    config = REDIS_DB.hgetall(f'config:{config_id}')
-    if config:
-        config['id'] = config_id
-        return config
-    return None
 
 @APP.route('/api/configs/<int:config_id>', methods=['GET'])
 def retrieve_config(config_id):
-    config = get_config(config_id)
+    config = DB.get_config(config_id)
     if config:
         return jsonify({'data': config})
     return jsonify({"error": "id doesn't exist"}), 404
@@ -94,21 +72,15 @@ def retrieve_config(config_id):
 
 @APP.route('/api/configs/<int:config_id>', methods=['PUT'])
 def update_config(config_id):
-    data = request.json
-    if REDIS_DB.hmset(f'config:{config_id}', {'name': data['name'], 'value': data['value']}):
-        config = get_config(config_id)
-        if config:
-            return jsonify({'data': config})
+    config = DB.update_config(config_id, request.json)
+    if config:
+        return jsonify({'data': config})
     return jsonify({'error': 'Not updated'})
 
 
 @APP.route('/api/configs/<int:config_id>', methods=['DELETE'])
 def delete_config(config_id):
-    pipe = REDIS_DB.pipeline()
-    pipe.delete(f'config:{config_id}')
-    pipe.srem('config', config_id)
-    result = pipe.execute()
-    if result == [1, 1]:
+    if DB.delete_config(config_id):
         return jsonify({'result': 'success'})
     return jsonify({'error': 'Not deleted'}), 404
 
@@ -153,7 +125,7 @@ def authenticate():
     oauth = BoxKeysStoreRedis.get_oauth()
     redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/api/boxauth'
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
-    REDIS_DB.hset('box', 'csrf_token', csrf_token)
+    DB.set_crsf_token(csrf_token)
     # Redirect to Box Oauth
     return redirect(auth_url)
 
@@ -166,7 +138,7 @@ def boxauth():
     csrf_token = request.args.get('state')
     auth_token = request.args.get('code')
     try:
-        assert REDIS_DB.hget('box', 'csrf_token') == csrf_token
+        assert DB.get_crsf_token() == csrf_token
         BoxKeysStoreRedis.get_oauth().authenticate(auth_token)
         response = "Authenticated. You can close this window."
     except BoxOAuthException as ex:  # pragma: no cover

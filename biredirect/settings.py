@@ -19,6 +19,7 @@ BOX_CLIENT_SECRET = environ.get('BOX_CLIENT_SECRET')
 
 # Heroku variables
 HEROKU_APP_NAME = environ.get("HEROKU_APP_NAME")
+REDIS_URL = environ.get("REDIS_URL")
 REDIS_DB = StrictRedis.from_url(environ.get("REDIS_URL"),
                                 decode_responses=True)
 PORT = int(environ.get('PORT'))

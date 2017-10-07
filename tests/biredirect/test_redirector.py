@@ -1,6 +1,7 @@
 """
 Tests for Redirector app
 """
+import json
 import pytest
 
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
@@ -20,6 +21,70 @@ def test_redirect_to_box_success(webapp):
 
     assert response.status_code == 302
     assert response.location == 'https://amadeus.box.com/shared/static/abc'
+
+
+def test_create_config(webapp):
+    response = webapp.post('/api/configs',
+                           data=json.dumps({'name': 'n', 'value': 'v'}),
+                           content_type='application/json')
+
+    assert response.status_code == 201
+    assert json.loads(response.data.decode()) == (
+        {'data': {'name': 'n', 'value': 'v', 'id': 1}})
+
+
+def test_create_config_failed(webapp):
+    response = webapp.post('/api/configs',
+                           data=json.dumps({'name': 'n'}),
+                           content_type='application/json')
+
+    assert response.status_code == 404
+    assert json.loads(response.data.decode()) == (
+        {'error': "Config don't created"})
+
+
+def test_retrive_configs(webapp):
+    response = webapp.get('/api/configs')
+
+    assert response.status_code == 200
+    assert json.loads(response.data.decode()) == {'data': [
+        {'name': 'n', 'value': 'v', 'id': 1},
+        {'name': 'n', 'value': 'v', 'id': 2}]}
+
+
+@pytest.mark.parametrize("config_id, result", [
+    (1, {'data': {'name': 'n', 'value': 'v', 'id': 1}}),
+    (2, {'data': {'name': 'n', 'value': 'v', 'id': 2}}),
+    (10, {"error": "id doesn't exist"})
+])
+def test_retrive_config(webapp, config_id, result):
+    response = webapp.get(f'/api/configs/{config_id}')
+
+    assert json.loads(response.data.decode()) == result
+
+
+@pytest.mark.parametrize("config_id, result", [
+    (1, {'data': {'name': 'a', 'value': 'e', 'id': 1}}),
+    (2, {'data': {'name': 'a', 'value': 'e', 'id': 2}}),
+    (10, {"error": "Not updated"})
+])
+def test_update_config(webapp,  config_id, result):
+    response = webapp.put(f'/api/configs/{config_id}',
+                          data=json.dumps({'name': 'a', 'value': 'e'}),
+                          content_type='application/json')
+
+    assert json.loads(response.data.decode()) == result
+
+
+@pytest.mark.parametrize("config_id, result", [
+    (1, {'result': 'success'}),
+    (2, {'result': 'success'}),
+    (10, {"error": "Not deleted"})
+])
+def test_delete_config(webapp,  config_id, result):
+    response = webapp.delete(f'/api/configs/{config_id}')
+
+    assert json.loads(response.data.decode()) == result
 
 
 @pytest.mark.parametrize("redirect_to, expected_url", [
@@ -59,20 +124,19 @@ def test_logout(webapp):
                                 f'client_id={AUTH0_CLIENT_ID}'
 
 
-def test_authenticate(webapp, box_redis_store, oauth, redisdb):
+def test_authenticate(webapp, box_redis_store, oauth, dbservice):
     response = webapp.get('/api/authenticate')
 
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.get_authorization_url.assert_called_once_with(
         f'https://{HEROKU_APP_NAME}.herokuapp.com/api/boxauth')
-    redisdb.hset.assert_called_once_with('box', 'csrf_token', 'csrf_0123')
+    dbservice.set_crsf_token.assert_called_once_with('csrf_0123')
     assert response.location == 'http://auth_url'
 
 
-def test_box_auth(webapp, box_redis_store, redisdb, oauth):
+def test_boxauth(webapp, box_redis_store, oauth):
     response = webapp.get('/api/boxauth?state=csrf_0123&code=auth_0123')
 
-    redisdb.hget.assert_called_once_with('box', 'csrf_token')
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.authenticate.assert_called_once_with('auth_0123')
     assert response.status_code == 200
@@ -80,9 +144,8 @@ def test_box_auth(webapp, box_redis_store, redisdb, oauth):
         'Authenticated. You can close this window.')
 
 
-def test_box_auth_failure(webapp, redisdb):
+def test_boxauth_failure(webapp):
     response = webapp.get('/api/boxauth?state=csrf_1234&code=auth_0123')
-    redisdb.hget.assert_called_once_with('box', 'csrf_token')
 
     assert response.status_code == 200
     assert response.data.decode() == "Tokens don't match"
