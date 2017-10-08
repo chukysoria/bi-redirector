@@ -12,6 +12,7 @@ invoke==0.20.4
 itsdangerous==0.24
 Jinja2==2.9.6
 MarkupSafe==1.0
+PyJWT==1.5.3
 python-dotenv==0.6.5
 redis==2.10.6
 requests==2.18.3
