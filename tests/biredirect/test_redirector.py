@@ -125,17 +125,17 @@ def test_logout(webapp):
 
 
 def test_authenticate(webapp, box_redis_store, oauth, dbservice):
-    response = webapp.get('/api/authenticate')
+    response = webapp.get('/api/box/authenticate')
 
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.get_authorization_url.assert_called_once_with(
-        f'https://{HEROKU_APP_NAME}.herokuapp.com/api/boxauth')
+        f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback')
     dbservice.set_crsf_token.assert_called_once_with('csrf_0123')
     assert response.location == 'http://auth_url'
 
 
 def test_boxauth(webapp, box_redis_store, oauth):
-    response = webapp.get('/api/boxauth?state=csrf_0123&code=auth_0123')
+    response = webapp.get('/api/box/callback?state=csrf_0123&code=auth_0123')
 
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.authenticate.assert_called_once_with('auth_0123')
@@ -145,7 +145,7 @@ def test_boxauth(webapp, box_redis_store, oauth):
 
 
 def test_boxauth_failure(webapp):
-    response = webapp.get('/api/boxauth?state=csrf_1234&code=auth_0123')
+    response = webapp.get('/api/box/callback?state=csrf_1234&code=auth_0123')
 
     assert response.status_code == 200
     assert response.data.decode() == "Tokens don't match"

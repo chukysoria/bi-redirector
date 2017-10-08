@@ -106,6 +106,7 @@ def update_config(config_id, data):
 def webapp(dbservice, box_redis_store, get_token, users):
     flask_app = redirector.APP
     flask_app.debug = True
+    flask_app.config['TESTING'] = True
     redirector.BoxKeysStoreRedis = box_redis_store
     redirector.DB = dbservice
     redirector.GetToken = get_token
