@@ -1,12 +1,12 @@
-<div>
+<div *ngIf="auth.userHasScopes(['read:config'])">
   <div *ngFor="let config of configs">
     <label>{{config.name}}</label>
     <input [(ngModel)]="config.value" placeholder="value">
-    <button (click)="update(config)">Update</button>
-    <button (click)="delete(config)">Del</button>
+    <button *ngIf="auth.userHasScopes(['update:config'])" (click)="update(config)">Update</button>
+    <button *ngIf="auth.userHasScopes(['delete:config'])" (click)="delete(config)">Del</button>
   </div>
 </div>
-<div>
+<div *ngIf="auth.userHasScopes(['create:config'])">
   <input placeholder="config name" #configName />
   <input placeholder="value" #configValue />
   <button (click)="add(configName.value, configValue.value); configName.value=''; configValue.value=''">

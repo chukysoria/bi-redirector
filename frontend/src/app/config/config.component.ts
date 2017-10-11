@@ -1,3 +1,4 @@
+import { AuthService } from './../auth.service';
 import { Component, OnInit } from '@angular/core';
 import { Config } from '../config';
 import { ConfigService } from '../config.service';
@@ -11,7 +12,7 @@ export class ConfigComponent implements OnInit {
 
   public configs: Config[];
 
-  constructor(private configService: ConfigService) { }
+  constructor(private configService: ConfigService, private auth: AuthService) { }
 
   ngOnInit() {
     this.getConfigs();

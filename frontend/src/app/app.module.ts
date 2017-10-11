@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Http, RequestOptions } from '@angular/http';
+import { HttpModule, Http, RequestOptions } from '@angular/http';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 
@@ -29,6 +29,7 @@ export function authHttpServiceFactory(http: Http, options: RequestOptions) {
   imports: [
     BrowserModule,
     FormsModule,
+    HttpModule,
     RouterModule.forRoot([{ path: '', component: ConfigComponent },
     { path: 'callback', component: CallbackComponent }])
   ],

@@ -9,7 +9,6 @@ from boxsdk.exception import BoxOAuthException
 from flask import (Flask, jsonify, redirect, request, send_from_directory,
                    session)
 import jwt
-from jwt.algorithms import RSAAlgorithm
 import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
@@ -37,7 +36,8 @@ def jwt_required(function):
             # Obtain first JWK and the keys to validate the signature
             jwks_object = requests.get(
                 f"https://{AUTH0_DOMAIN}/.well-known/jwks.json").json()
-            jwks_key = RSAAlgorithm.from_jwk(json.dumps(jwks_object['keys'][0]))
+            jwks_key = jwt.algorithms.RSAAlgorithm.from_jwk(
+                json.dumps(jwks_object['keys'][0]))
             try:
                 payload = jwt.decode(
                     access_token, jwks_key, algorithms=['RS256'],

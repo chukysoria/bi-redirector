@@ -29,7 +29,7 @@
   </div>
 </nav>
 
-<main class="container">
+<main class="container" *ngIf="auth.isAuthenticated()">
   <router-outlet></router-outlet>
 </main>
 
