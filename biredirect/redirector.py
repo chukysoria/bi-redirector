@@ -23,33 +23,38 @@ DB = DBService()
 
 
 # Login decorator
-def jwt_required(function):
-    @wraps(function)
-    def wrapper(*orig_args, **orig_kwargs):
-        # Return if testing
-        if APP.config['TESTING']:
-            return function(*orig_args, **orig_kwargs)
-        # Get Bearer token
-        access_token = request.headers.get('Authorization')
-        if access_token:
-            access_token = access_token.replace('Bearer ', '', 1)
-            # Obtain first JWK and the keys to validate the signature
-            jwks_object = requests.get(
-                f"https://{AUTH0_DOMAIN}/.well-known/jwks.json").json()
-            jwks_key = jwt.algorithms.RSAAlgorithm.from_jwk(
-                json.dumps(jwks_object['keys'][0]))
-            try:
-                payload = jwt.decode(
-                    access_token, jwks_key, algorithms=['RS256'],
-                    audience=f'https://{AUTH0_DOMAIN}/api/v2/',
-                    issuer=f"https://{AUTH0_DOMAIN}/")
-                if payload['sub']:
-                    return function(*orig_args, **orig_kwargs)
-                return route_error(401, "Unauthorized user")
-            except jwt.ExpiredSignatureError:
-                return route_error(401, "Expired Token")
-        return route_error(401, "Authorization needed")
-    return wrapper
+def jwt_required(scope):
+    def real_decorator(function):
+        @wraps(function)
+        def wrapper(*orig_args, **orig_kwargs):
+            # Return if testing
+            if APP.config['TESTING']:
+                return function(*orig_args, **orig_kwargs)
+            # Get Bearer token
+            access_token = request.headers.get('Authorization')
+            if access_token:
+                access_token = access_token.replace('Bearer ', '', 1)
+                # Obtain first JWK and the keys to validate the signature
+                jwks_object = requests.get(
+                    f"https://{AUTH0_DOMAIN}/.well-known/jwks.json").json()
+                jwks_key = jwt.algorithms.RSAAlgorithm.from_jwk(
+                    json.dumps(jwks_object['keys'][0]))
+                try:
+                    payload = jwt.decode(
+                        access_token, jwks_key, algorithms=['RS256'],
+                        audience=f'https://{AUTH0_DOMAIN}/api/v2/',
+                        issuer=f"https://{AUTH0_DOMAIN}/")
+                    granted_scopes = payload['scope'].split()
+                    if payload['sub'] and (scope in granted_scopes):
+                        return function(*orig_args, **orig_kwargs)
+                    return route_error(401, "Unauthorized user")
+                except jwt.ExpiredSignatureError:
+                    return route_error(401, "Expired Token")
+            return route_error(401, "Authorization needed")
+        return wrapper
+    if callable(scope):
+        return real_decorator(scope)
+    return real_decorator
 
 
 def route_error(code, message):
@@ -74,7 +79,7 @@ def redirect_to_box():
 
 
 @APP.route('/api/configs', methods=['POST'])
-@jwt_required
+@jwt_required(scope='create:config')
 def create_config():
     config = DB.insert_config(request.json)
     if config:
@@ -83,7 +88,7 @@ def create_config():
 
 
 @APP.route('/api/configs', methods=['GET'])
-@jwt_required
+@jwt_required(scope='read:config')
 def retrieve_configs():
     """
     Return all configs
@@ -92,7 +97,7 @@ def retrieve_configs():
 
 
 @APP.route('/api/configs/<int:config_id>', methods=['GET'])
-@jwt_required
+@jwt_required(scope='read:config')
 def retrieve_config(config_id):
     config = DB.get_config(config_id)
     if config:
@@ -101,7 +106,7 @@ def retrieve_config(config_id):
 
 
 @APP.route('/api/configs/<int:config_id>', methods=['PUT'])
-@jwt_required
+@jwt_required(scope='update:config')
 def update_config(config_id):
     config = DB.update_config(config_id, request.json)
     if config:
@@ -110,7 +115,7 @@ def update_config(config_id):
 
 
 @APP.route('/api/configs/<int:config_id>', methods=['DELETE'])
-@jwt_required
+@jwt_required(scope='delete:config')
 def delete_config(config_id):
     if DB.delete_config(config_id):
         return jsonify({'result': 'success'})
@@ -154,7 +159,7 @@ def logout():
 @jwt_required
 def authenticate():
     """
-    Launches the authentication process
+    Launches the Box authentication process
     """
     oauth = BoxKeysStoreRedis.get_oauth()
     redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback'
