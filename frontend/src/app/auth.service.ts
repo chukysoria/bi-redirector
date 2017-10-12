@@ -2,18 +2,21 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import * as auth0 from 'auth0-js';
 
+import { environment } from '../environments/environment';
+
 @Injectable()
 export class AuthService {
 
   requestedScopes = 'openid profile create:config read:config update:config delete:config';
 
   // TODO: Include parametrized redirect with Location prepareExternalUrl
+  private domain = window.location;
   auth0 = new auth0.WebAuth({
-    clientID: 'QKeRmjc7M80tHvxmHhEoTycVCyj3S4fo',
-    domain: 'biredirect.eu.auth0.com',
+    clientID: environment.auth0clientID,
+    domain: environment.auth0domain,
     responseType: 'token id_token',
-    audience: 'https://biredirect.eu.auth0.com/api/v2/',
-    redirectUri: 'http://localhost:5000/callback',
+    audience: environment.auth0audience,
+    redirectUri: `${this.domain.protocol}://${this.domain.host}/callback`,
     scope: this.requestedScopes
   });
 
@@ -46,7 +49,7 @@ export class AuthService {
     localStorage.setItem('id_token', authResult.idToken);
     localStorage.setItem('expires_at', expiresAt);
     // Save scopes. No scopes returned mean all have been granted
-    const scopes = authResult.scopes || this.requestedScopes || '';
+    const scopes = authResult.scope || this.requestedScopes || '';
     localStorage.setItem('scopes', JSON.stringify(scopes));
   }
 
