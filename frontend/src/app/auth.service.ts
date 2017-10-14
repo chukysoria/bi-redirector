@@ -16,7 +16,7 @@ export class AuthService {
     domain: environment.auth0domain,
     responseType: 'token id_token',
     audience: environment.auth0audience,
-    redirectUri: `${this.domain.protocol}://${this.domain.host}/callback`,
+    redirectUri: `${this.domain.protocol}//${this.domain.host}/callback`,
     scope: this.requestedScopes
   });
 
