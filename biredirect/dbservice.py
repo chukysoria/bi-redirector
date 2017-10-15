@@ -6,10 +6,9 @@ from biredirect.settings import REDIS_URL
 class DBService(object):
 
     LUA_NEW_ITEM = """
-local id = redis.call("INCR", KEYS[1] .. ":id")
-redis.call("HMSET",  KEYS[1] .. ":" .. id, unpack(ARGV))
-redis.call("SADD", KEYS[1], id)
-return id
+local r1 = redis.call("HMSET",  KEYS[1] .. ":" .. KEYS[2], unpack(ARGV))
+local r2 = redis.call("SADD", KEYS[1], KEYS[2])
+return r1, r2
 """
     CONFIG_KEY = "config"
     BOX_KEY = "box"
@@ -20,55 +19,63 @@ return id
         self._new_config = self._redis.register_script(self.LUA_NEW_ITEM)
 
     # Config
-
     def insert_config(self, data):
-        config_id = self._new_config(keys=[self.CONFIG_KEY],
-                                     args=['name', data['name'],
-                                           'value', data['value']])
-        config = self._redis.hgetall(f'{self.CONFIG_KEY}:{config_id}')
-        config['id'] = config_id
-        return config
+        result = self._new_config(
+            keys=[self.CONFIG_KEY, data['name']],
+            args=['name', data['name'],
+                  'value', data['value']])
+        if result == 'OK':
+            return self.get_config(data['name'])
+        self.delete_config(data['name'])
+        return None
 
-    def retrieve_configs(self):
-        config_ids = self._redis.smembers(self.CONFIG_KEY)
+    def get_configs(self):
+        config_names = self._redis.smembers(self.CONFIG_KEY)
         pipe = self._redis.pipeline()
-        for config_id in config_ids:
-            pipe.hgetall(f'{self.CONFIG_KEY}:{config_id}')
+        for config_name in config_names:
+            pipe.hgetall(f'{self.CONFIG_KEY}:{config_name}')
 
         configs = pipe.execute()
-        i = 0
-        for config_id in config_ids:
-            configs[i]['id'] = config_id
-            i += 1
         return configs
 
-    def get_config(self, config_id):
-        config = self._redis.hgetall(f'{self.CONFIG_KEY}:{config_id}')
-        if config:
-            config['id'] = config_id
+    def get_config(self, config_name):
+        return self.get_hash_keys(f'{self.CONFIG_KEY}:{config_name}')
+
+    def get_config_value(self, config_name):
+        return self.get_hash_key(f'{self.CONFIG_KEY}:{config_name}', 'value')
+
+    def update_config(self, config_name, data):
+        if self.set_hash_keys(f'{self.CONFIG_KEY}:{config_name}',
+                              {'name': data['name'], 'value': data['value']}):
+            config = self.get_config(config_name)
             return config
         return None
 
-    def update_config(self, config_id, data):
-        if self._redis.hmset(f'{self.CONFIG_KEY}:{config_id}',
-                             {'name': data['name'], 'value': data['value']}):
-            config = self.get_config(config_id)
-            return config
-        return None
-
-    def delete_config(self, config_id):
+    def delete_config(self, config_name):
         pipe = self._redis.pipeline()
-        pipe.delete(f'{self.CONFIG_KEY}:{config_id}')
-        pipe.srem('config', config_id)
+        pipe.delete(f'{self.CONFIG_KEY}:{config_name}')
+        pipe.srem(self.CONFIG_KEY, config_name)
         result = pipe.execute()
         if result == [1, 1]:
             return 'Ok'
         return None
 
-    # Box
+    def config_exists(self, config_name):
+        return self._redis.sismember(self.CONFIG_KEY, config_name) == 1
 
+    # Box
     def set_crsf_token(self, csrf_token):
         self._redis.hset(self.BOX_KEY, 'csrf_token', csrf_token)
 
     def get_crsf_token(self):
-        return self._redis.hget(self.BOX_KEY, 'csrf_token')
+        return self.get_hash_key(self.BOX_KEY, 'csrf_token')
+
+    # Common
+    def get_hash_keys(self, name):
+        return self._redis.hgetall(name)
+
+    def get_hash_key(self, name, key):
+        return self._redis.hget(name, key)
+
+    def set_hash_keys(self, name, mapping):
+        return self._redis.hmset(name, mapping)

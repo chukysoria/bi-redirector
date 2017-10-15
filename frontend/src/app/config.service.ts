@@ -28,7 +28,7 @@ export class ConfigService {
   }
 
   update(config: Config): Promise<Config> {
-    const url = `${this.configURL}/${config.id}`;
+    const url = `${this.configURL}/${config.name}`;
     return this.authHttp
       .put(url, JSON.stringify(config))
       .toPromise()
@@ -36,8 +36,8 @@ export class ConfigService {
       .catch((err) => this.handleError(err));
   }
 
-  delete(id: number): Promise<void> {
-    const url = `${this.configURL}/${id}`;
+  delete(name: string): Promise<void> {
+    const url = `${this.configURL}/${name}`;
     return this.authHttp
       .delete(url)
       .toPromise()

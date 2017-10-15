@@ -25,6 +25,7 @@ def oauth():
 def box_redis_store(oauth):
     mock_box_redis_store = mock.Mock(spec=boxstores.BoxKeysStoreRedis)
     mock_box_redis_store.get_oauth.return_value = oauth
+    mock_box_redis_store.return_value = mock_box_redis_store
     return mock_box_redis_store
 
 
@@ -59,6 +60,11 @@ def users(users_instance):
 
 
 @pytest.fixture
+def get_config(config_name):
+    return f'value_{config_name}'
+
+
+@pytest.fixture
 def redisdb():
     mock_redisdb = mock.Mock(spec=StrictRedis)
     mock_redisdb.hget.return_value = 'csrf_0123'
@@ -73,28 +79,28 @@ def dbservice():
     mock_dbservice.get_config = retrieve_config
     mock_dbservice.update_config = update_config
     mock_dbservice.delete_config = retrieve_config
-    mock_dbservice.retrieve_configs.return_value = (
-        [retrieve_config(1), retrieve_config(2)])
+    mock_dbservice.config_exists.return_value = False
+    mock_dbservice.get_configs.return_value = (
+        [retrieve_config('a'), retrieve_config('b')])
     return mock_dbservice
 
 
 def insert_config(data):
     try:
         if data['name'] and data['value']:
-            data['id'] = 1
             return data
     except:
         return None
 
 
-def retrieve_config(config_id):
-    if config_id < 10:
-        return {'name': 'n', 'value': 'v', 'id': config_id}
+def retrieve_config(config_name):
+    if config_name != 'fail':
+        return {'name': config_name, 'value': 'v'}
     return None
 
 
-def update_config(config_id, data):
-    config = retrieve_config(config_id)
+def update_config(config_name, data):
+    config = retrieve_config(config_name)
     if config:
         config['name'] = data['name']
         config['value'] = data['value']

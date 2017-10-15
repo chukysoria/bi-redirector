@@ -30,7 +30,7 @@ def test_create_config(webapp):
 
     assert response.status_code == 201
     assert json.loads(response.data.decode()) == (
-        {'data': {'name': 'n', 'value': 'v', 'id': 1}})
+        {'data': {'name': 'N', 'value': 'v'}})
 
 
 def test_create_config_failed(webapp):
@@ -48,41 +48,41 @@ def test_retrive_configs(webapp):
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {'data': [
-        {'name': 'n', 'value': 'v', 'id': 1},
-        {'name': 'n', 'value': 'v', 'id': 2}]}
+        {'name': 'a', 'value': 'v'},
+        {'name': 'b', 'value': 'v'}]}
 
 
-@pytest.mark.parametrize("config_id, result", [
-    (1, {'data': {'name': 'n', 'value': 'v', 'id': 1}}),
-    (2, {'data': {'name': 'n', 'value': 'v', 'id': 2}}),
-    (10, {"error": "id doesn't exist"})
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'data': {'name': 'a', 'value': 'v'}}),
+    ('b', {'data': {'name': 'b', 'value': 'v'}}),
+    ('fail', {"error": "name doesn't exist"})
 ])
-def test_retrive_config(webapp, config_id, result):
-    response = webapp.get(f'/api/configs/{config_id}')
+def test_retrive_config(webapp, config_name, result):
+    response = webapp.get(f'/api/configs/{config_name}')
 
     assert json.loads(response.data.decode()) == result
 
 
-@pytest.mark.parametrize("config_id, result", [
-    (1, {'data': {'name': 'a', 'value': 'e', 'id': 1}}),
-    (2, {'data': {'name': 'a', 'value': 'e', 'id': 2}}),
-    (10, {"error": "Not updated"})
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'data': {'name': 'a', 'value': 'e'}}),
+    ('b', {'data': {'name': 'b', 'value': 'e'}}),
+    ('fail', {"error": "Not updated"})
 ])
-def test_update_config(webapp,  config_id, result):
-    response = webapp.put(f'/api/configs/{config_id}',
-                          data=json.dumps({'name': 'a', 'value': 'e'}),
+def test_update_config(webapp, config_name, result):
+    response = webapp.put(f'/api/configs/{config_name}',
+                          data=json.dumps({'name': config_name, 'value': 'e'}),
                           content_type='application/json')
 
     assert json.loads(response.data.decode()) == result
 
 
-@pytest.mark.parametrize("config_id, result", [
-    (1, {'result': 'success'}),
-    (2, {'result': 'success'}),
-    (10, {"error": "Not deleted"})
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'result': 'success'}),
+    ('b', {'result': 'success'}),
+    ('fail', {"error": "Not deleted"})
 ])
-def test_delete_config(webapp,  config_id, result):
-    response = webapp.delete(f'/api/configs/{config_id}')
+def test_delete_config(webapp,  config_name, result):
+    response = webapp.delete(f'/api/configs/{config_name}')
 
     assert json.loads(response.data.decode()) == result
 

@@ -34,13 +34,13 @@ export class ConfigComponent implements OnInit {
   update(config: Config): void {
     this.configService.update(config)
       .then(newConfig => {
-        const index = this.configs.findIndex(c => c.id === newConfig.id);
+        const index = this.configs.findIndex(c => c.name === newConfig.name);
         this.configs[index] = newConfig;
       });
   }
 
   delete(config: Config): void {
-    this.configService.delete(config.id)
+    this.configService.delete(config.name)
       .then(() => this.configs = this.configs.filter(c => c !== config)
       );
   }

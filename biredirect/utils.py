@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from functools import wraps
+from biredirect import DB
 
 PROF_DATA = {}
 
@@ -39,3 +40,10 @@ def parse_date(str_date):
         return str_date
     else:
         raise Exception
+
+
+def get_config(name):
+    value = DB.get_config_value(name.upper())
+    if value:
+        return value
+    raise Exception(f"Config {name} doesn't exist")

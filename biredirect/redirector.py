@@ -11,15 +11,14 @@ from flask import (Flask, jsonify, redirect, request, send_from_directory,
 import jwt
 import requests
 
+from biredirect import DB
 from biredirect.boxstores import BoxKeysStoreRedis
-from biredirect.dbservice import DBService
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
                                  AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
                                  HEROKU_APP_NAME)
 
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
-DB = DBService()
 
 
 # Login decorator
@@ -81,10 +80,17 @@ def redirect_to_box():
 @APP.route('/api/configs', methods=['POST'])
 @jwt_required(scope='create:config')
 def create_config():
-    config = DB.insert_config(request.json)
-    if config:
-        return jsonify({'data': config}), 201
-    return jsonify({"error": "Config don't created"}), 404
+    try:
+        data = request.json
+        data['name'] = data['name'].upper()
+        if DB.config_exists(data['name']):
+            return jsonify({"error": "Config already exists"}), 404
+        config = DB.insert_config(data)
+        if config:
+            return jsonify({'data': config}), 201
+        return jsonify({"error": "Config don't created"}), 404
+    except ValueError:
+        return jsonify({"error": "Config should have a name"}), 404
 
 
 @APP.route('/api/configs', methods=['GET'])
@@ -93,31 +99,31 @@ def retrieve_configs():
     """
     Return all configs
     """
-    return jsonify({'data': DB.retrieve_configs()})
+    return jsonify({'data': DB.get_configs()})
 
 
-@APP.route('/api/configs/<int:config_id>', methods=['GET'])
+@APP.route('/api/configs/<string:config_name>', methods=['GET'])
 @jwt_required(scope='read:config')
-def retrieve_config(config_id):
-    config = DB.get_config(config_id)
+def retrieve_config(config_name):
+    config = DB.get_config(config_name)
     if config:
         return jsonify({'data': config})
-    return jsonify({"error": "id doesn't exist"}), 404
+    return jsonify({"error": "name doesn't exist"}), 404
 
 
-@APP.route('/api/configs/<int:config_id>', methods=['PUT'])
+@APP.route('/api/configs/<string:config_name>', methods=['PUT'])
 @jwt_required(scope='update:config')
-def update_config(config_id):
-    config = DB.update_config(config_id, request.json)
+def update_config(config_name):
+    config = DB.update_config(config_name, request.json)
     if config:
         return jsonify({'data': config})
     return jsonify({'error': 'Not updated'})
 
 
-@APP.route('/api/configs/<int:config_id>', methods=['DELETE'])
+@APP.route('/api/configs/<string:config_name>', methods=['DELETE'])
 @jwt_required(scope='delete:config')
-def delete_config(config_id):
-    if DB.delete_config(config_id):
+def delete_config(config_name):
+    if DB.delete_config(config_name):
         return jsonify({'result': 'success'})
     return jsonify({'error': 'Not deleted'}), 404
 
@@ -156,13 +162,16 @@ def logout():
 
 # Box logins
 @APP.route("/api/box/authenticate")
-@jwt_required
 def authenticate():
     """
     Launches the Box authentication process
     """
-    oauth = BoxKeysStoreRedis.get_oauth()
-    redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback'
+    box_key_store = BoxKeysStoreRedis()
+    oauth = box_key_store.get_oauth()
+    if HEROKU_APP_NAME:
+        redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback'
+    else:
+        redirect_url = f'http://localhost:5000/api/box/callback'
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
     DB.set_crsf_token(csrf_token)
     # Redirect to Box Oauth
@@ -178,7 +187,8 @@ def boxauth():
     auth_token = request.args.get('code')
     try:
         assert DB.get_crsf_token() == csrf_token
-        BoxKeysStoreRedis.get_oauth().authenticate(auth_token)
+        box_key_store = BoxKeysStoreRedis()
+        box_key_store.get_oauth().authenticate(auth_token)
         response = "Authenticated. You can close this window."
     except BoxOAuthException as ex:  # pragma: no cover
         response = ex
