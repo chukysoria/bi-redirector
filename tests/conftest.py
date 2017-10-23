@@ -89,7 +89,7 @@ def insert_config(data):
     try:
         if data['name'] and data['value']:
             return data
-    except:
+    except KeyError:
         return None
 
 
