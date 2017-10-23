@@ -12,20 +12,24 @@ export class ConfigComponent implements OnInit {
 
   public configs: Config[];
 
-  constructor(private configService: ConfigService, private auth: AuthService) { }
+  constructor(private configService: ConfigService, public auth: AuthService) { }
 
   ngOnInit() {
     this.getConfigs();
   }
 
   getConfigs(): void {
-    this.configService.getConfigs().then(configs => this.configs = configs);
+    this.configService.getConfigs().then(configs => this.configs = configs.sort((a, b) => {
+      if (a.name < b.name) {return -1; }
+      if (a.name > b.name) {return 1; }
+      return 0;
+    }));
   }
 
-  add(name: string, value: string): void {
+  add(name: string, value: string, secure: boolean): void {
     name = name.trim();
     if (!name) { return; }
-    this.configService.create(name, value)
+    this.configService.create(name, value, secure)
       .then(config => {
         this.configs.push(config);
       });

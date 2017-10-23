@@ -20,10 +20,13 @@ return r1, r2
 
     # Config
     def insert_config(self, data):
+        args = []
+        for key, value in data.items():
+            args.append(key)
+            args.append(value)
         result = self._new_config(
             keys=[self.CONFIG_KEY, data['name']],
-            args=['name', data['name'],
-                  'value', data['value']])
+            args=args)
         if result == 'OK':
             return self.get_config(data['name'])
         self.delete_config(data['name'])
@@ -36,17 +39,26 @@ return r1, r2
             pipe.hgetall(f'{self.CONFIG_KEY}:{config_name}')
 
         configs = pipe.execute()
+        for config in configs:
+            if 'secure' in config:
+                config['secure'] = config['secure'] == 'True'
         return configs
 
     def get_config(self, config_name):
-        return self.get_hash_keys(f'{self.CONFIG_KEY}:{config_name}')
+        config = self.get_hash_keys(f'{self.CONFIG_KEY}:{config_name}')
+        if 'secure' in config:
+            config['secure'] = config['secure'] == 'True'
+        return config
 
     def get_config_value(self, config_name):
         return self.get_hash_key(f'{self.CONFIG_KEY}:{config_name}', 'value')
 
     def update_config(self, config_name, data):
-        if self.set_hash_keys(f'{self.CONFIG_KEY}:{config_name}',
-                              {'name': data['name'], 'value': data['value']}):
+        args = []
+        for key, value in data.items():
+            args.append(key)
+            args.append(value)
+        if self.set_hash_keys(f'{self.CONFIG_KEY}:{config_name}', data):
             config = self.get_config(config_name)
             return config
         return None

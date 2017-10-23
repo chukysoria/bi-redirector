@@ -95,7 +95,7 @@ def insert_config(data):
 
 def retrieve_config(config_name):
     if config_name != 'fail':
-        return {'name': config_name, 'value': 'v'}
+        return {'name': config_name, 'value': 'v', 'secure': False}
     return None
 
 

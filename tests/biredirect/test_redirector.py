@@ -5,8 +5,7 @@ import json
 import pytest
 
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
-                                 AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
-                                 HEROKU_APP_NAME)
+                                 AUTH0_CLIENT_SECRET, AUTH0_DOMAIN)
 
 
 def test_redirect_to_box(webapp):
@@ -25,22 +24,23 @@ def test_redirect_to_box_success(webapp):
 
 def test_create_config(webapp):
     response = webapp.post('/api/configs',
-                           data=json.dumps({'name': 'n', 'value': 'v'}),
+                           data=json.dumps({'name': 'n', 'value': 'v',
+                                            'secure': False}),
                            content_type='application/json')
 
     assert response.status_code == 201
     assert json.loads(response.data.decode()) == (
-        {'data': {'name': 'N', 'value': 'v'}})
+        {'data': {'name': 'N', 'value': 'v', 'secure': False}})
 
 
 def test_create_config_failed(webapp):
     response = webapp.post('/api/configs',
-                           data=json.dumps({'name': 'n'}),
+                           data=json.dumps({'value': 'n'}),
                            content_type='application/json')
 
     assert response.status_code == 404
     assert json.loads(response.data.decode()) == (
-        {'error': "Config don't created"})
+        {'error': "Config should have a name"})
 
 
 def test_retrive_configs(webapp):
@@ -48,13 +48,13 @@ def test_retrive_configs(webapp):
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {'data': [
-        {'name': 'a', 'value': 'v'},
-        {'name': 'b', 'value': 'v'}]}
+        {'name': 'a', 'value': 'v', 'secure': False},
+        {'name': 'b', 'value': 'v', 'secure': False}]}
 
 
 @pytest.mark.parametrize("config_name, result", [
-    ('a', {'data': {'name': 'a', 'value': 'v'}}),
-    ('b', {'data': {'name': 'b', 'value': 'v'}}),
+    ('a', {'data': {'name': 'a', 'value': 'v', 'secure': False}}),
+    ('b', {'data': {'name': 'b', 'value': 'v', 'secure': False}}),
     ('fail', {"error": "name doesn't exist"})
 ])
 def test_retrive_config(webapp, config_name, result):
@@ -64,8 +64,8 @@ def test_retrive_config(webapp, config_name, result):
 
 
 @pytest.mark.parametrize("config_name, result", [
-    ('a', {'data': {'name': 'a', 'value': 'e'}}),
-    ('b', {'data': {'name': 'b', 'value': 'e'}}),
+    ('a', {'data': {'name': 'a', 'value': 'e', 'secure': False}}),
+    ('b', {'data': {'name': 'b', 'value': 'e', 'secure': False}}),
     ('fail', {"error": "Not updated"})
 ])
 def test_update_config(webapp, config_name, result):
@@ -116,7 +116,7 @@ def test_callback_handling_error(webapp):
 
 def test_logout(webapp):
     response = webapp.get('/logout')
-    return_to = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
+    return_to = 'http://localhost:5000'
 
     assert response.status_code == 302
     assert response.location == f'https://{AUTH0_DOMAIN}/v2/logout?'\
@@ -129,7 +129,7 @@ def test_authenticate(webapp, box_redis_store, oauth, dbservice):
 
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.get_authorization_url.assert_called_once_with(
-        f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback')
+        'http://localhost:5000/api/box/callback')
     dbservice.set_crsf_token.assert_called_once_with('csrf_0123')
     assert response.location == 'http://auth_url'
 

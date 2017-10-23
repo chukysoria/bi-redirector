@@ -1,7 +1,10 @@
 import time
 from datetime import datetime
 from functools import wraps
-from biredirect import DB
+
+from cryptography.fernet import Fernet, InvalidToken
+
+from biredirect import DB, SECRET_KEY
 
 PROF_DATA = {}
 
@@ -47,3 +50,28 @@ def get_config(name):
     if value:
         return value
     raise Exception(f"Config {name} doesn't exist")
+
+
+def get_secure_config(name):
+    token = get_config(name)
+    try:
+        return decrypt(token)
+    except InvalidToken:
+        raise Exception(f"Config {name} is not secured")
+
+
+def encrypt(text):
+    secret = SECRET_KEY.encode('UTF-8')
+    fernet = Fernet(secret)
+    token = fernet.encrypt(text.encode('UTF-8'))
+    return token.decode('UTF-8')
+
+
+def decrypt(token):
+    try:
+        secret = SECRET_KEY.encode('UTF-8')
+        fernet = Fernet(secret)
+        text = fernet.decrypt(token.encode('UTF-8'))
+        return text.decode('UTF-8')
+    except InvalidToken:
+        return token

@@ -11,9 +11,9 @@ export class ConfigService {
 
   constructor(private authHttp: AuthHttp) { }
 
-  create(name: string, value: string): Promise<Config> {
+  create(name: string, value: string, secure: boolean): Promise<Config> {
     return this.authHttp
-      .post(this.configURL, JSON.stringify({name: name, value: value}))
+      .post(this.configURL, JSON.stringify({name: name, value: value, secure: secure}))
       .toPromise()
       .then(response => response.json().data as Config)
       .catch((err) => this.handleError(err));

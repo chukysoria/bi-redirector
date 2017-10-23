@@ -1,7 +1,8 @@
 <div *ngIf="auth.userHasScopes(['read:config'])">
   <div *ngFor="let config of configs">
     <label>{{config.name}}</label>
-    <input [(ngModel)]="config.value" placeholder="value">
+    <input [(ngModel)]="config.value" placeholder="value" *ngIf="!config.secure">
+    <input [(ngModel)]="config.value" placeholder="value" type="password" *ngIf="config.secure">
     <button *ngIf="auth.userHasScopes(['update:config'])" (click)="update(config)">Update</button>
     <button *ngIf="auth.userHasScopes(['delete:config'])" (click)="delete(config)">Del</button>
   </div>
@@ -9,7 +10,8 @@
 <div *ngIf="auth.userHasScopes(['create:config'])">
   <input placeholder="config name" #configName />
   <input placeholder="value" #configValue />
-  <button (click)="add(configName.value, configValue.value); configName.value=''; configValue.value=''">
+  <input type="checkbox" #configSecure/>
+  <button (click)="add(configName.value, configValue.value, configSecure.checked); configName.value=''; configValue.value=''; configSecure.checked=false">
     Add
   </button>
 </div>

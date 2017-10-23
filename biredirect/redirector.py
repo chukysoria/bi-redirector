@@ -11,14 +11,15 @@ from flask import (Flask, jsonify, redirect, request, send_from_directory,
 import jwt
 import requests
 
-from biredirect import DB
+from biredirect import DB, SECRET_KEY
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
                                  AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
                                  HEROKU_APP_NAME)
+from biredirect.utils import decrypt, encrypt
 
 APP = Flask(__name__)
-APP.secret_key = 'secret'  # TODO: Replace by real secret
+APP.secret_key = SECRET_KEY
 
 
 # Login decorator
@@ -85,11 +86,15 @@ def create_config():
         data['name'] = data['name'].upper()
         if DB.config_exists(data['name']):
             return jsonify({"error": "Config already exists"}), 404
+        if 'secure' in data and data['secure']:
+            data['value'] = encrypt(data['value'])
         config = DB.insert_config(data)
+        if 'secure' in config and config['secure']:
+            config['value'] = decrypt(config['value'])
         if config:
             return jsonify({'data': config}), 201
         return jsonify({"error": "Config don't created"}), 404
-    except ValueError:
+    except KeyError:
         return jsonify({"error": "Config should have a name"}), 404
 
 
@@ -99,7 +104,11 @@ def retrieve_configs():
     """
     Return all configs
     """
-    return jsonify({'data': DB.get_configs()})
+    configs = DB.get_configs()
+    for config in configs:
+        if 'secure' in config and config['secure']:
+            config['value'] = decrypt(config['value'])
+    return jsonify({'data': configs})
 
 
 @APP.route('/api/configs/<string:config_name>', methods=['GET'])
@@ -107,6 +116,8 @@ def retrieve_configs():
 def retrieve_config(config_name):
     config = DB.get_config(config_name)
     if config:
+        if 'secure' in config and config['secure']:
+            config['value'] = decrypt(config['value'])
         return jsonify({'data': config})
     return jsonify({"error": "name doesn't exist"}), 404
 
@@ -114,7 +125,10 @@ def retrieve_config(config_name):
 @APP.route('/api/configs/<string:config_name>', methods=['PUT'])
 @jwt_required(scope='update:config')
 def update_config(config_name):
-    config = DB.update_config(config_name, request.json)
+    data = request.json
+    if 'secure' in data and data['secure']:
+        data['value'] = encrypt(data['value'])
+    config = DB.update_config(config_name, data)
     if config:
         return jsonify({'data': config})
     return jsonify({'error': 'Not updated'})
@@ -154,7 +168,10 @@ def callback_handling():
 @jwt_required
 def logout():
     session.clear()
-    base_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
+    if HEROKU_APP_NAME:
+        base_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
+    else:
+        base_url = 'http://localhost:5000'
     return redirect(
         f'https://{AUTH0_DOMAIN}/v2/logout?'
         f'returnTo={base_url}&client_id={AUTH0_CLIENT_ID}')
@@ -169,7 +186,8 @@ def authenticate():
     box_key_store = BoxKeysStoreRedis()
     oauth = box_key_store.get_oauth()
     if HEROKU_APP_NAME:
-        redirect_url = f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback'
+        redirect_url = (
+            f'https://{HEROKU_APP_NAME}.herokuapp.com/api/box/callback')
     else:
         redirect_url = f'http://localhost:5000/api/box/callback'
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
