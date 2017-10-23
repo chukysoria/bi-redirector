@@ -5,15 +5,22 @@ import json
 import os
 from datetime import date, datetime, time, timedelta
 
-import requests
+from cryptography.fernet import Fernet
 from invoke import call, task
+import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.reportserver import ReportFormat, ReportServer
-from biredirect.settings import HEROKU_APP_NAME, REPORT_PASSWORD
-from biredirect.utils import get_config, parse_date, print_prof_data, profile
+from biredirect.settings import HEROKU_APP_NAME
+from biredirect.utils import (get_config, get_secure_config, parse_date,
+                              print_prof_data, profile)
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
+
+
+@task
+def generate_secret_key(ctx):
+    print(Fernet.generate_key().decode('UTF-8'))
 
 
 @task
@@ -65,20 +72,10 @@ def download_files(ctx, open_date, update_date):
 
 
 def _get_report_download():
-    """
-    >>> from Crypto.Cipher import AES
-    >>> obj = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
-    >>> message = "The answer is no"
-    >>> ciphertext = obj.encrypt(message)
-    >>> ciphertext
-    '\xd6\x83\x8dd!VT\x92\xaa`A\x05\xe0\x9b\x8b\xf1'
-    >>> obj2 = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
-    >>> obj2.decrypt(ciphertext)
-    'The answer is no'
-    """
     report_download = ReportServer(get_config('REPORT_SERVER'))
     print("Login into report server")
-    report_download.login(get_config('REPORT_USERNAME'), REPORT_PASSWORD)
+    report_download.login(get_config('REPORT_USERNAME'),
+                          get_secure_config('REPORT_PASSWORD'))
     print("Login successful")
     return report_download
 
