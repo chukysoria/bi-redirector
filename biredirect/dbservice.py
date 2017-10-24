@@ -1,3 +1,6 @@
+import os
+from urllib.parse import urlparse
+
 from redis import StrictRedis
 
 from biredirect.settings import REDIS_URL
@@ -14,7 +17,11 @@ return r1, r2
     BOX_KEY = "box"
 
     def __init__(self, database_url=REDIS_URL):
-        self._redis = StrictRedis.from_url(database_url, decode_responses=True)
+        url_parts = urlparse(database_url)
+        # Secure port in next port given in production
+        if not os.environ.get('DEBUG'):
+            port = url_parts.port + 1
+        self._redis = StrictRedis(host=url_parts.hostname, port=port, password=url_parts.password, decode_responses=True)
         # Register scripts
         self._new_config = self._redis.register_script(self.LUA_NEW_ITEM)
 
