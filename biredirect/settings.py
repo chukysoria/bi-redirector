@@ -9,6 +9,7 @@ load_dotenv(find_dotenv())
 # Heroku variables
 HEROKU_APP_NAME = environ.get("HEROKU_APP_NAME")
 REDIS_URL = environ.get("REDIS_URL")
+REDIS_SECURE = int(environ.get("REDIS_SECURE"))
 SECRET_KEY = environ.get("SECRET_KEY")
 # Auth0 variables
 AUTH0_CALLBACK_URL = environ['AUTH0_CALLBACK_URL']

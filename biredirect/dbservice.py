@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 from redis import StrictRedis
 
-from biredirect.settings import REDIS_URL
+from biredirect.settings import REDIS_SECURE, REDIS_URL
 
 
 class DBService(object):
@@ -19,8 +19,7 @@ return r1, r2
     def __init__(self, database_url=REDIS_URL):
         url_parts = urlparse(database_url)
         # Secure port in next port given in production
-        if not os.environ.get('DEBUG'):
-            port = url_parts.port + 1
+        port = url_parts.port + REDIS_SECURE
         self._redis = StrictRedis(host=url_parts.hostname, port=port, password=url_parts.password, decode_responses=True)
         # Register scripts
         self._new_config = self._redis.register_script(self.LUA_NEW_ITEM)
