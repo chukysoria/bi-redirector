@@ -1,6 +1,6 @@
 from redis import StrictRedis
 
-from biredirect.settings import REDIS_SECURE, REDIS_URL
+from biredirect.settings import REDIS_URL
 
 
 class DBService(object):
