@@ -19,6 +19,9 @@
     },
     "SECRET_KEY": {
       "generator": "secret"
+    },
+    "REDIS_SECURE": {
+      "value": 1
     }
   },
   "formation": {},
