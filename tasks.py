@@ -5,26 +5,22 @@ import json
 import os
 from datetime import date, datetime, time, timedelta
 
+from cryptography.fernet import Fernet
 from invoke import call, task
 import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.reportserver import ReportFormat, ReportServer
-from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
-                                 FILE_LIST, HEROKU_APP_NAME, JOB_SNITCH,
-                                 REPORT_PASSWORD, REPORT_SERVER,
-                                 REPORT_USERNAME)
-from biredirect.utils import parse_date, print_prof_data, profile
+from biredirect.settings import HEROKU_APP_NAME
+from biredirect.utils import (get_config, get_secure_config, parse_date,
+                              print_prof_data, profile)
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
 
 
 @task
-def create_pip_requirements(ctx):
-    """
-    pip freeze to requirements.txt
-    """
-    ctx.run("pip freeze > requirements.txt")
+def generate_secret_key(ctx):
+    print(Fernet.generate_key().decode('UTF-8'))
 
 
 @task
@@ -42,7 +38,7 @@ def download_files(ctx, open_date, update_date):
     update_date = parse_date(update_date)
 
     report_download = _get_report_download()
-    temp_path = DOWNLOAD_PATH
+    temp_path = get_config('DOWNLOAD_PATH')
     timestamp = update_date.strftime('%Y%m%d')
     str_open_date = open_date.strftime('%m/%d/%Y')
     str_update_date = update_date.strftime('%m/%d/%Y')
@@ -83,33 +79,25 @@ def download_files(ctx, open_date, update_date):
 
 
 def _get_report_download():
-    """
-    >>> from Crypto.Cipher import AES
-    >>> obj = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
-    >>> message = "The answer is no"
-    >>> ciphertext = obj.encrypt(message)
-    >>> ciphertext
-    '\xd6\x83\x8dd!VT\x92\xaa`A\x05\xe0\x9b\x8b\xf1'
-    >>> obj2 = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
-    >>> obj2.decrypt(ciphertext)
-    'The answer is no'
-    """
-    report_download = ReportServer(REPORT_SERVER)
+    report_download = ReportServer(get_config('REPORT_SERVER'))
     print("Login into report server")
-    report_download.login(REPORT_USERNAME, REPORT_PASSWORD)
+    report_download.login(get_config('REPORT_USERNAME'),
+                          get_secure_config('REPORT_PASSWORD'))
     print("Login successful")
     return report_download
 
 
 @task
-def delete_local_files(ctx, folder=DOWNLOAD_PATH):
+def delete_local_files(ctx, folder=None):
     """
     Delete local files
 
     :param path:
         Directory to clean
     """
-    print("Deleting tmp files")
+    if folder is None:
+        folder = get_config('DOWNLOAD_PATH')
+    print("Deleting files")
     for the_file in os.scandir(folder):
         try:
             if the_file.is_file():
@@ -129,7 +117,8 @@ def sync_to_box(ctx, delete_files_remotely=False):
 @profile
 def _sync_to_box(ctx, delete_files_remotely=False):
     # Create client
-    client = BoxSync(keys_store=BoxKeysStoreRedis,
+    box_keys_store = BoxKeysStoreRedis()
+    client = BoxSync(keys_store=box_keys_store,
                      authenticate_method=_authenticate_box)
 
     if delete_files_remotely:
@@ -137,15 +126,17 @@ def _sync_to_box(ctx, delete_files_remotely=False):
         _create_file_list(client)
 
     # Sync folder to Box
-    client.sync_folder(local_path=DOWNLOAD_PATH,
-                       box_folder_id=BOX_DESTINATION_FOLDER,
+    tmp_folder = get_config('DOWNLOAD_PATH')
+    box_destination = get_config('BOX_DESTINATION_FOLDER')
+    client.sync_folder(local_path=tmp_folder,
+                       box_folder_id=box_destination,
                        create_link=True,
                        delete_files_remotely=delete_files_remotely)
 
     file_list = _create_file_list(client)
 
     # Upload new file
-    client.upload_file_to_box(destination_folder=BOX_DESTINATION_FOLDER,
+    client.upload_file_to_box(destination_folder=box_destination,
                               fichero=file_list)
 
 
@@ -201,23 +192,26 @@ def daily_update(ctx, open_date="01/01/2017"):
         daily_download(ctx, open_date)
         sync_to_box(ctx, False)
     msg = print_prof_data()
-    requests.post(JOB_SNITCH, data={"m": msg})
+    requests.post(get_config('JOB_SNITCH'), data={"m": msg})
     print(msg)
 
 
 def _authenticate_box(oauth):
     raise Exception(f"Go to https://{HEROKU_APP_NAME}.herokuapp.com/"
-                    f"authenticate to login")
+                    f"api/box/authenticate to login")
 
 
 def _create_file_list(client):
     # Get files on the Box folder
+    box_destination = get_config('BOX_DESTINATION_FOLDER')
     local_filenames_json = client.list_box_folder_to_json(
-        BOX_DESTINATION_FOLDER)
+        box_destination)
 
     # Dump to a json file
-    file_list = BiFile(filename=FILE_LIST,
-                       path=os.path.join(DOWNLOAD_PATH, FILE_LIST))
+    tmp_folder = get_config('DOWNLOAD_PATH')
+    file_list_name = get_config('FILE_LIST')
+    file_list = BiFile(filename=file_list_name,
+                       path=os.path.join(tmp_folder, file_list_name))
     with open(file_list.path, 'w') as outfile:
         json.dump(local_filenames_json, outfile)
 

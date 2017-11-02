@@ -1,0 +1,12 @@
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "license": "MIT",
+  "engines": {
+    "node": "8.4.0",
+    "npm": "5.5.1"
+  },
+  "scripts": {
+    "postinstall": "cd frontend && npm install"
+  }
+}

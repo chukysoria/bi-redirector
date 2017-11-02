@@ -2,40 +2,33 @@
   "name": "bi-redirector",
   "scripts": {},
   "env": {
-    "BOX_CLIENT_ID": {
-      "required": true
+    "AUTH0_CLIENT_ID": {
+      "required": "true"
     },
-    "BOX_CLIENT_SECRET": {
-      "required": true
+    "AUTH0_DOMAIN": {
+      "required": "true"
     },
-    "BOX_DESTINATION_FOLDER": {
-      "required": true
+    "AUTH0_AUDIENCE": {
+      "required": "true"
     },
-    "DOWNLOAD_PATH": {
-      "required": true
+    "AUTH0_CLIENT_SECRET": {
+      "required": "true"
     },
-    "FILE_LIST": {
-      "required": true
+    "AUTH0_CALLBACK_URL": {
+      "value": "http://localhost:5000/api/authcallback"
     },
-    "PORT": {
-      "required": true
-    },
-    "REPORT_PASSWORD": {
-      "required": true
-    },
-    "REPORT_SERVER": {
-      "required": true
-    },
-    "REPORT_USERNAME": {
-      "required": true
+    "SECRET_KEY": {
+      "generator": "secret"
     }
   },
   "formation": {},
   "addons": [
-    "papertrail",
     "heroku-redis"
   ],
   "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
     {
       "url": "heroku/python"
     }

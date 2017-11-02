@@ -1,11 +1,11 @@
 """
 Tests for Redirector app
 """
+import json
 import pytest
 
 from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
-                                 AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
-                                 HEROKU_APP_NAME)
+                                 AUTH0_CLIENT_SECRET, AUTH0_DOMAIN)
 
 
 def test_redirect_to_box(webapp):
@@ -20,6 +20,71 @@ def test_redirect_to_box_success(webapp):
 
     assert response.status_code == 302
     assert response.location == 'https://amadeus.box.com/shared/static/abc'
+
+
+def test_create_config(webapp):
+    response = webapp.post('/api/configs',
+                           data=json.dumps({'name': 'n', 'value': 'v',
+                                            'secure': False}),
+                           content_type='application/json')
+
+    assert response.status_code == 201
+    assert json.loads(response.data.decode()) == (
+        {'data': {'name': 'N', 'value': 'v', 'secure': False}})
+
+
+def test_create_config_failed(webapp):
+    response = webapp.post('/api/configs',
+                           data=json.dumps({'value': 'n'}),
+                           content_type='application/json')
+
+    assert response.status_code == 404
+    assert json.loads(response.data.decode()) == (
+        {'error': "Config should have a name"})
+
+
+def test_retrive_configs(webapp):
+    response = webapp.get('/api/configs')
+
+    assert response.status_code == 200
+    assert json.loads(response.data.decode()) == {'data': [
+        {'name': 'a', 'value': 'v', 'secure': False},
+        {'name': 'b', 'value': 'v', 'secure': False}]}
+
+
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'data': {'name': 'a', 'value': 'v', 'secure': False}}),
+    ('b', {'data': {'name': 'b', 'value': 'v', 'secure': False}}),
+    ('fail', {"error": "name doesn't exist"})
+])
+def test_retrive_config(webapp, config_name, result):
+    response = webapp.get(f'/api/configs/{config_name}')
+
+    assert json.loads(response.data.decode()) == result
+
+
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'data': {'name': 'a', 'value': 'e', 'secure': False}}),
+    ('b', {'data': {'name': 'b', 'value': 'e', 'secure': False}}),
+    ('fail', {"error": "Not updated"})
+])
+def test_update_config(webapp, config_name, result):
+    response = webapp.put(f'/api/configs/{config_name}',
+                          data=json.dumps({'name': config_name, 'value': 'e'}),
+                          content_type='application/json')
+
+    assert json.loads(response.data.decode()) == result
+
+
+@pytest.mark.parametrize("config_name, result", [
+    ('a', {'result': 'success'}),
+    ('b', {'result': 'success'}),
+    ('fail', {"error": "Not deleted"})
+])
+def test_delete_config(webapp,  config_name, result):
+    response = webapp.delete(f'/api/configs/{config_name}')
+
+    assert json.loads(response.data.decode()) == result
 
 
 @pytest.mark.parametrize("redirect_to, expected_url", [
@@ -51,7 +116,7 @@ def test_callback_handling_error(webapp):
 
 def test_logout(webapp):
     response = webapp.get('/logout')
-    return_to = f'https://{HEROKU_APP_NAME}.herokuapp.com/'
+    return_to = 'http://localhost:5000'
 
     assert response.status_code == 302
     assert response.location == f'https://{AUTH0_DOMAIN}/v2/logout?'\
@@ -59,20 +124,19 @@ def test_logout(webapp):
                                 f'client_id={AUTH0_CLIENT_ID}'
 
 
-def test_authenticate(webapp, box_redis_store, oauth, redisdb):
-    response = webapp.get('/api/authenticate')
+def test_authenticate(webapp, box_redis_store, oauth, dbservice):
+    response = webapp.get('/api/box/authenticate')
 
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.get_authorization_url.assert_called_once_with(
-        f'https://{HEROKU_APP_NAME}.herokuapp.com/api/boxauth')
-    redisdb.hset.assert_called_once_with('box', 'csrf_token', 'csrf_0123')
+        'http://localhost:5000/api/box/callback')
+    dbservice.set_crsf_token.assert_called_once_with('csrf_0123')
     assert response.location == 'http://auth_url'
 
 
-def test_box_auth(webapp, box_redis_store, redisdb, oauth):
-    response = webapp.get('/api/boxauth?state=csrf_0123&code=auth_0123')
+def test_boxauth(webapp, box_redis_store, oauth):
+    response = webapp.get('/api/box/callback?state=csrf_0123&code=auth_0123')
 
-    redisdb.hget.assert_called_once_with('box', 'csrf_token')
     box_redis_store.get_oauth.assert_called_once_with()
     oauth.authenticate.assert_called_once_with('auth_0123')
     assert response.status_code == 200
@@ -80,9 +144,8 @@ def test_box_auth(webapp, box_redis_store, redisdb, oauth):
         'Authenticated. You can close this window.')
 
 
-def test_box_auth_failure(webapp, redisdb):
-    response = webapp.get('/api/boxauth?state=csrf_1234&code=auth_0123')
-    redisdb.hget.assert_called_once_with('box', 'csrf_token')
+def test_boxauth_failure(webapp):
+    response = webapp.get('/api/box/callback?state=csrf_1234&code=auth_0123')
 
     assert response.status_code == 200
     assert response.data.decode() == "Tokens don't match"

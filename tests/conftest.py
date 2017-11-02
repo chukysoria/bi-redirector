@@ -9,7 +9,7 @@ from boxsdk import OAuth2
 import pytest
 from redis import StrictRedis
 
-from biredirect import boxstores, redirector
+from biredirect import DBService, boxstores, redirector
 from boxsync import boxresponse, boxsync
 
 
@@ -25,6 +25,7 @@ def oauth():
 def box_redis_store(oauth):
     mock_box_redis_store = mock.Mock(spec=boxstores.BoxKeysStoreRedis)
     mock_box_redis_store.get_oauth.return_value = oauth
+    mock_box_redis_store.return_value = mock_box_redis_store
     return mock_box_redis_store
 
 
@@ -59,6 +60,11 @@ def users(users_instance):
 
 
 @pytest.fixture
+def get_config(config_name):
+    return f'value_{config_name}'
+
+
+@pytest.fixture
 def redisdb():
     mock_redisdb = mock.Mock(spec=StrictRedis)
     mock_redisdb.hget.return_value = 'csrf_0123'
@@ -66,11 +72,49 @@ def redisdb():
 
 
 @pytest.fixture
-def webapp(redisdb, box_redis_store, get_token, users):
+def dbservice():
+    mock_dbservice = mock.Mock(spec=DBService)
+    mock_dbservice.get_crsf_token.return_value = 'csrf_0123'
+    mock_dbservice.insert_config = insert_config
+    mock_dbservice.get_config = retrieve_config
+    mock_dbservice.update_config = update_config
+    mock_dbservice.delete_config = retrieve_config
+    mock_dbservice.config_exists.return_value = False
+    mock_dbservice.get_configs.return_value = (
+        [retrieve_config('a'), retrieve_config('b')])
+    return mock_dbservice
+
+
+def insert_config(data):
+    try:
+        if data['name'] and data['value']:
+            return data
+    except KeyError:
+        return None
+
+
+def retrieve_config(config_name):
+    if config_name != 'fail':
+        return {'name': config_name, 'value': 'v', 'secure': False}
+    return None
+
+
+def update_config(config_name, data):
+    config = retrieve_config(config_name)
+    if config:
+        config['name'] = data['name']
+        config['value'] = data['value']
+        return config
+    return None
+
+
+@pytest.fixture
+def webapp(dbservice, box_redis_store, get_token, users):
     flask_app = redirector.APP
     flask_app.debug = True
+    flask_app.config['TESTING'] = True
     redirector.BoxKeysStoreRedis = box_redis_store
-    redirector.REDIS_DB = redisdb
+    redirector.DB = dbservice
     redirector.GetToken = get_token
     redirector.Users = users
     with flask_app.test_client() as client:

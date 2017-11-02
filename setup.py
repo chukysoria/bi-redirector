@@ -21,6 +21,7 @@ setup(
         'Flask >=0.12.2',
         'gunicorn == 19.6.0',
         'invoke >= 0.20.4',
+        'PyJWT >= 1.5.3',
         'python-dotenv >=0.6.5',
         'redis >=2.10.6',
         'requests >=2.18.3'],
