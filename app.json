@@ -19,9 +19,6 @@
     },
     "SECRET_KEY": {
       "generator": "secret"
-    },
-    "REDIS_SECURE": {
-      "value": "1"
     }
   },
   "formation": {},
@@ -29,9 +26,6 @@
     "heroku-redis"
   ],
   "buildpacks": [
-    {
-      "url": "https://github.com/heroku/heroku-buildpack-redis.git"
-    },
     {
       "url": "heroku/nodejs"
     },
