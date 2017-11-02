@@ -1,4 +1,3 @@
-import os
 from urllib.parse import urlparse
 
 from redis import StrictRedis
@@ -20,7 +19,10 @@ return r1, r2
         url_parts = urlparse(database_url)
         # Secure port in next port given in production
         port = url_parts.port + REDIS_SECURE
-        self._redis = StrictRedis(host=url_parts.hostname, port=port, password=url_parts.password, decode_responses=True)
+        self._redis = StrictRedis(host=url_parts.hostname,
+                                  port=port,
+                                  password=url_parts.password,
+                                  decode_responses=True)
         # Register scripts
         self._new_config = self._redis.register_script(self.LUA_NEW_ITEM)
 
