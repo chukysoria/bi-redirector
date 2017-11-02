@@ -1,1 +1,1 @@
-web: bin/start-stunnel gunicorn -b 0.0.0.0:$PORT biredirect.redirector:APP
+web: gunicorn -b 0.0.0.0:$PORT biredirect.redirector:APP
