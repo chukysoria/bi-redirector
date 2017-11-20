@@ -83,7 +83,7 @@ def download_files(ctx, open_date, update_date):
 
     # Exluded CSAT
     print("Downloading CSAT_excluded...")
-    filename = os.path.join(temp_path, 'Tickets_Excluidos.xmlv')
+    filename = os.path.join(temp_path, 'Tickets_Excluidos.xml')
     report_download.download_report('Dashboard/Tickets_Excluidos',
                                     ReportFormat.XML,
                                     filename)
