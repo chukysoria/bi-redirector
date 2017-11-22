@@ -81,6 +81,13 @@ def download_files(ctx, open_date, update_date):
                                     ReportFormat.CSV,
                                     filename)
 
+    # Exluded CSAT
+    print("Downloading CSAT_excluded...")
+    filename = os.path.join(temp_path, 'Tickets_Excluidos.xml')
+    report_download.download_report('Dashboard/Tickets_Excluidos',
+                                    ReportFormat.XML,
+                                    filename)
+
 
 def _get_report_download():
     """
@@ -144,7 +151,7 @@ def _sync_to_box(ctx, delete_files_remotely=False):
 
     file_list = _create_file_list(client)
 
-    # Upload new file
+    # Upload new file_list
     client.upload_file_to_box(destination_folder=BOX_DESTINATION_FOLDER,
                               fichero=file_list)
 
