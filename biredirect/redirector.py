@@ -18,7 +18,7 @@ from boxsync import BoxSync
 
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
-BOX_CLIENT = BoxSync(BoxKeysStoreRedis)
+BOX_CLIENT = None
 
 
 # Login decorator
@@ -29,8 +29,6 @@ def requires_auth(f):
             auth = request.args['Authorization']
             if auth == API_TOKEN:
                 return f(*args, **kwargs)
-        else:
-            return 401
         if 'profile' not in session:
             # Redirect to Login page here
             return redirect('/')
@@ -66,6 +64,12 @@ def redirect_to_box():
     doc_id = request.args.get('docID')
     if doc_id is None:
         return 'a'
+    
+    if not BOX_CLIENT:
+        try:
+            BOX_CLIENT = BoxSync(BoxKeysStoreRedis) 
+        except:
+            pass
 
     new_url = BOX_CLIENT.get_download_url(doc_id)
     return redirect(new_url)
