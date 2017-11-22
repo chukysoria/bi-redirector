@@ -65,14 +65,13 @@ def redirect_to_box():
     if doc_id is None:
         return 'a'
     
-    if not BOX_CLIENT:
-        try:
-            BOX_CLIENT = BoxSync(BoxKeysStoreRedis) 
-        except:
-            pass
+    try:
+        box_client = BoxSync(BoxKeysStoreRedis)         
+        new_url = box_client.get_download_url(doc_id)
+        return redirect(new_url)
+    except:
+        return None
 
-    new_url = BOX_CLIENT.get_download_url(doc_id)
-    return redirect(new_url)
 
 
 # Internal Logins
