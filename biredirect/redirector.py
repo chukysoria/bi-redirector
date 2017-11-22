@@ -11,18 +11,26 @@ from flask import (Flask, redirect, render_template, request,
                    send_from_directory, session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
-from biredirect.settings import (AUTH0_CALLBACK_URL, AUTH0_CLIENT_ID,
-                                 AUTH0_CLIENT_SECRET, AUTH0_DOMAIN,
-                                 HEROKU_APP_NAME, REDIS_DB)
+from biredirect.settings import (API_TOKEN, AUTH0_CALLBACK_URL,
+                                 AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET,
+                                 AUTH0_DOMAIN, HEROKU_APP_NAME, REDIS_DB)
+from boxsync import BoxSync
 
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
+BOX_CLIENT = BoxSync(BoxKeysStoreRedis)
 
 
 # Login decorator
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if 'Authorization' in request.args:
+            auth = request.args['Authorization']
+            if auth == API_TOKEN:
+                return f(*args, **kwargs)
+        else:
+            return 401
         if 'profile' not in session:
             # Redirect to Login page here
             return redirect('/')
@@ -50,6 +58,7 @@ def dashboard():
 
 # API Routes
 @APP.route('/api/redirect', methods=['GET'])
+@requires_auth
 def redirect_to_box():
     """
     Redirect to the Box download address
@@ -58,7 +67,7 @@ def redirect_to_box():
     if doc_id is None:
         return 'a'
 
-    new_url = f"https://amadeus.box.com/shared/static/{doc_id}"
+    new_url = BOX_CLIENT.get_download_url(doc_id)
     return redirect(new_url)
 
 

@@ -139,7 +139,7 @@ def _sync_to_box(ctx, delete_files_remotely=False):
     # Sync folder to Box
     client.sync_folder(local_path=DOWNLOAD_PATH,
                        box_folder_id=BOX_DESTINATION_FOLDER,
-                       create_link=True,
+                       create_link=False,
                        delete_files_remotely=delete_files_remotely)
 
     file_list = _create_file_list(client)

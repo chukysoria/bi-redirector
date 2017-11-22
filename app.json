@@ -28,6 +28,9 @@
     },
     "REPORT_USERNAME": {
       "required": true
+    },
+    "API_TOKEN": {
+      "required": true
     }
   },
   "formation": {},
