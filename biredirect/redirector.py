@@ -9,11 +9,11 @@ from auth0.v3.authentication import GetToken, Users
 
 from boxsdk.exception import BoxOAuthException
 
-from flask import (Flask, abort, redirect, render_template,
-                   request, send_from_directory, session)
+from flask import (Flask, abort, redirect, render_template, request,
+                   send_from_directory, session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
-from biredirect.settings import (API_TOKEN, AUTH0_CALLBACK_URL,
+from biredirect.settings import (API_PWD, API_USERNAME, AUTH0_CALLBACK_URL,
                                  AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET,
                                  AUTH0_DOMAIN, HEROKU_APP_NAME, REDIS_DB)
 
@@ -28,9 +28,10 @@ BOX_CLIENT = None
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'Authorization' in request.args:
-            auth = request.args['Authorization']
-            if auth == API_TOKEN:
+        print(request.authorization)
+        if request.authorization:
+            auth = request.authorization
+            if auth.username == API_USERNAME and auth.password == API_PWD:
                 return f(*args, **kwargs)
         if 'profile' not in session:
             # Redirect to Login page here
