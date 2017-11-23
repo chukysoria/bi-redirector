@@ -7,7 +7,7 @@ from os import environ as env
 
 from auth0.v3.authentication import GetToken, Users
 
-from boxsdk.exception import BoxAPIException, BoxOAuthException
+from boxsdk.exception import BoxOAuthException
 
 from flask import (Flask, abort, redirect, render_template,
                    request, send_from_directory, session)
@@ -57,6 +57,10 @@ def dashboard():
     return 'Future dashboard'
 
 
+def box_auth(oauth):
+    raise BoxOAuthException(status="Failed")
+
+
 # API Routes
 @APP.route('/api/redirect', methods=['GET'])
 @requires_auth
@@ -69,10 +73,10 @@ def redirect_to_box():
         return 'a'
 
     try:
-        box_client = BoxSync(BoxKeysStoreRedis)
+        box_client = BoxSync(BoxKeysStoreRedis, box_auth)
         new_url = box_client.get_download_url(doc_id)
         return redirect(new_url)
-    except (OSError, BoxAPIException):
+    except BoxOAuthException:
         abort(503)
 
 
