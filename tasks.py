@@ -6,6 +6,7 @@ import os
 from datetime import date, datetime, time, timedelta
 
 from invoke import call, task
+
 import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
@@ -15,6 +16,7 @@ from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
                                  REPORT_PASSWORD, REPORT_SERVER,
                                  REPORT_USERNAME)
 from biredirect.utils import parse_date, print_prof_data, profile
+
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
 

@@ -4,6 +4,7 @@ Application settings
 from os import environ
 
 from dotenv import find_dotenv, load_dotenv
+
 from redis import StrictRedis
 
 load_dotenv(find_dotenv())

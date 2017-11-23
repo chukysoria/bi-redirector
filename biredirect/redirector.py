@@ -6,14 +6,17 @@ from functools import wraps
 from os import environ as env
 
 from auth0.v3.authentication import GetToken, Users
-from boxsdk.exception import BoxOAuthException
-from flask import (Flask, redirect, render_template, request,
-                   send_from_directory, session)
+
+from boxsdk.exception import BoxAPIException, BoxOAuthException
+
+from flask import (Flask, abort, redirect, render_template,
+                   request, send_from_directory, session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
 from biredirect.settings import (API_TOKEN, AUTH0_CALLBACK_URL,
                                  AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET,
                                  AUTH0_DOMAIN, HEROKU_APP_NAME, REDIS_DB)
+
 from boxsync import BoxSync
 
 APP = Flask(__name__)
@@ -64,14 +67,13 @@ def redirect_to_box():
     doc_id = request.args.get('docID')
     if doc_id is None:
         return 'a'
-    
+
     try:
-        box_client = BoxSync(BoxKeysStoreRedis)         
+        box_client = BoxSync(BoxKeysStoreRedis)
         new_url = box_client.get_download_url(doc_id)
         return redirect(new_url)
-    except:
-        return None
-
+    except (OSError, BoxAPIException):
+        abort(503)
 
 
 # Internal Logins

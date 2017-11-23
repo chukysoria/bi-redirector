@@ -7,6 +7,7 @@ import webbrowser
 
 from boxsdk import Client, OAuth2
 from boxsdk.exception import BoxAPIException, BoxOAuthException
+
 import requests
 
 from boxsync.bifile import BiFile
@@ -205,14 +206,14 @@ class BoxSync:
                                          fields=['name', 'shared_link'])
         # Fulfill sharedlinks
         folder_list = {}
-        for boxfile in box_files:
-            if boxfile.shared_link:
-                bifile = BiFile(filename=boxfile.name,
-                                shared_link=boxfile.shared_link['download_url'],
-                                box_file_id=boxfile.id)
+        for bf in box_files:
+            if bf.shared_link:
+                bifile = BiFile(filename=bf.name,
+                                shared_link=bf.shared_link['download_url'],
+                                box_file_id=bf.id)
             else:
-                bifile = BiFile(filename=boxfile.name,                                
-                                box_file_id=boxfile.id)
+                bifile = BiFile(filename=bf.name,
+                                box_file_id=bf.id)
             folder_list[bifile.filename] = bifile
 
         local_filenames_json = {}
@@ -291,8 +292,9 @@ class BoxSync:
     def get_download_url(self, file_id):
         box_file_url = self.client.file(file_id).get_url('content')
         headers = {'Authorization': f'Bearer {self.client.auth.access_token}'}
-        response = requests.get(box_file_url, headers=headers, allow_redirects=False)
+        response = requests.get(box_file_url,
+                                headers=headers,
+                                allow_redirects=False)
         if response.status_code == 302:
             return response.headers['location']
         return None
-        
