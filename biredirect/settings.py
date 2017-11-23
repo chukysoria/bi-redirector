@@ -4,6 +4,7 @@ Application settings
 from os import environ
 
 from dotenv import find_dotenv, load_dotenv
+
 from redis import StrictRedis
 
 load_dotenv(find_dotenv())
@@ -28,6 +29,7 @@ DOWNLOAD_PATH = environ.get('DOWNLOAD_PATH')
 REPORT_SERVER = environ.get('REPORT_SERVER')
 REPORT_USERNAME = environ.get('REPORT_USERNAME')
 REPORT_PASSWORD = environ.get('REPORT_PASSWORD')
+API_TOKEN = environ.get('API_TOKEN')
 
 # Job variables
 BOX_DESTINATION_FOLDER = environ.get('BOX_DESTINATION_FOLDER')

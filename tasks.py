@@ -6,6 +6,7 @@ import os
 from datetime import date, datetime, time, timedelta
 
 from invoke import call, task
+
 import requests
 
 from biredirect.boxstores import BoxKeysStoreRedis
@@ -15,6 +16,7 @@ from biredirect.settings import (BOX_DESTINATION_FOLDER, DOWNLOAD_PATH,
                                  REPORT_PASSWORD, REPORT_SERVER,
                                  REPORT_USERNAME)
 from biredirect.utils import parse_date, print_prof_data, profile
+
 from boxsync.bifile import BiFile
 from boxsync.boxsync import BoxSync
 
@@ -146,7 +148,7 @@ def _sync_to_box(ctx, delete_files_remotely=False):
     # Sync folder to Box
     client.sync_folder(local_path=DOWNLOAD_PATH,
                        box_folder_id=BOX_DESTINATION_FOLDER,
-                       create_link=True,
+                       create_link=False,
                        delete_files_remotely=delete_files_remotely)
 
     file_list = _create_file_list(client)

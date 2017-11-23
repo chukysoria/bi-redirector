@@ -5,11 +5,15 @@ import json
 from unittest import mock
 
 from auth0.v3.authentication import GetToken, Users
+
 from boxsdk import OAuth2
+
 import pytest
+
 from redis import StrictRedis
 
 from biredirect import boxstores, redirector
+
 from boxsync import boxresponse, boxsync
 
 

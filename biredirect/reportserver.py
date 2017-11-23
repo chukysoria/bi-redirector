@@ -5,6 +5,7 @@ import urllib.parse
 from enum import Enum
 
 from bs4 import BeautifulSoup
+
 from requests import Session
 
 
