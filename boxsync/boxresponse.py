@@ -2,6 +2,7 @@
 Simple webserver to retrieve a Box auth response.
 """
 from boxsdk.exception import BoxOAuthException
+
 from flask import Flask, request
 
 FLASK_APP = Flask(__name__)

@@ -24,10 +24,12 @@ class BiFile:
         `unicode`
     """
 
-    def __init__(self, path=None, filename=None, shared_link=None):
+    def __init__(self, path=None, filename=None,
+                 shared_link=None, box_file_id=None):
         self.path = path
         self.filename = filename
         self.shared_link = shared_link
+        self.box_file_id = box_file_id
 
     def to_json(self):
         """
