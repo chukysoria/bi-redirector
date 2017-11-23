@@ -29,7 +29,10 @@
     "REPORT_USERNAME": {
       "required": true
     },
-    "API_TOKEN": {
+    "API_USERNAME": {
+      "required": true
+    },
+    "API_PWD": {
       "required": true
     },
     "AUTH0_AUDIENCE": {
