@@ -9,7 +9,7 @@ from auth0.v3.authentication import GetToken, Users
 
 from boxsdk.exception import BoxOAuthException
 
-from flask import (Flask, abort, redirect, render_template, request,
+from flask import (Flask, abort, g, redirect, render_template, request,
                    send_from_directory, session)
 
 from biredirect.boxstores import BoxKeysStoreRedis
@@ -21,14 +21,12 @@ from boxsync import BoxSync
 
 APP = Flask(__name__)
 APP.secret_key = 'secret'  # TODO: Replace by real secret
-BOX_CLIENT = None
 
 
 # Login decorator
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        print(request.authorization)
         if request.authorization:
             auth = request.authorization
             if auth.username == API_USERNAME and auth.password == API_PWD:
@@ -74,8 +72,9 @@ def redirect_to_box():
         return 'a'
 
     try:
-        box_client = BoxSync(BoxKeysStoreRedis, box_auth)
-        new_url = box_client.get_download_url(doc_id)
+        if g.get('boxclient', None) is None:
+            g.boxclient = BoxSync()  # BoxKeysStoreRedis, box_auth)
+        new_url = g.boxclient .get_download_url(doc_id)
         return redirect(new_url)
     except BoxOAuthException:
         abort(503)
