@@ -72,9 +72,10 @@ def redirect_to_box():
         return 'a'
 
     try:
-        if g.get('boxclient', None) is None:
-            g.boxclient = BoxSync(BoxKeysStoreRedis, box_auth)
-        new_url = g.boxclient .get_download_url(doc_id)
+        boxclient = getattr(g, 'boxclient', None)
+        if boxclient is None:
+            boxclient = g.boxclient = BoxSync(BoxKeysStoreRedis, box_auth)
+        new_url = g.boxclient.get_download_url(doc_id)
         return redirect(new_url)
     except BoxOAuthException:
         abort(503)
