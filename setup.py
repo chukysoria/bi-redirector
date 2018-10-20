@@ -16,8 +16,10 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires=[
+        'auth0-python' >= '3.3.0',
         'boxsdk >= 1.5.4',
         'bs4 >=0.0.1',
+        'cryptography' >= "2.3.1",
         'Flask >=0.12.2',
         'gunicorn == 19.6.0',
         'invoke >= 0.20.4',
